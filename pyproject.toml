@@ -1,0 +1,35 @@
+[project]
+name = "campus-opinion-radar"
+version = "0.1.0"
+description = "面向校园墙场景的舆情风险演化与证据化处置平台"
+authors = [
+    {name = "Campus Opinion Radar Team"}
+]
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "streamlit>=1.40.0",
+    "pydantic>=2.10.0",
+    "sentence-transformers>=3.3.0",
+    "networkx>=3.4.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "ruff>=0.8.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+python_files = "test_*.py"
+python_functions = "test_*"

@@ -1,0 +1,81 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment Variables
+.env
+.env.local
+
+# Data & Cache
+data/raw/
+data/.private/
+cache/
+*.db
+*.db-journal
+
+# Model Files
+models/
+*.pt
+*.pth
+*.bin
+*.safetensors
+
+# Logs
+*.log
+logs/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Outputs (keep structure, ignore content)
+outputs/reports/*.pdf
+outputs/reports/*.md
+outputs/figures/*.png
+outputs/experiment_results/*.json
+
+# Docker
+*.dockerfile.tmp
+
+# Local sensitive capture scripts
+request_ys.qimiaoyuanfen.com.py
