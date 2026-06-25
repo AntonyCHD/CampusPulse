@@ -412,7 +412,7 @@ onMounted(() => { checkBackendStatus() })
 </template>
 
 <style scoped>
-.settings-page { max-width:1200px; margin:0 auto; padding:20px 24px; }
+.settings-page { max-width:1200px; margin:0 auto; padding:16px 20px; }
 .page-header { margin-bottom:24px; }
 .page-header h1 { font-family:var(--font-heading,'Fira Code',monospace); font-size:24px; font-weight:600; color:#1E3A8A; margin:0 0 6px 0; }
 .subtitle { font-size:14px; color:#64748B; margin:0; }
@@ -423,7 +423,7 @@ onMounted(() => { checkBackendStatus() })
 .tab-btn.active { background:rgba(30,64,175,0.08); color:#1E40AF; font-weight:600; }
 .tab-icon { width:16px; height:16px; }
 
-.tab-content { min-height:400px; }
+.tab-content { min-height:200px; }
 
 .status-banner { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-radius:10px; margin-bottom:20px; }
 .banner-ok { background:#f0fdf4; border:1px solid #bbf7d0; }

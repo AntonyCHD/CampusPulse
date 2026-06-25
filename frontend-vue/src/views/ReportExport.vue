@@ -218,7 +218,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.report-export { max-width: 1400px; margin: 0 auto; padding: 20px 24px; }
+.report-export { max-width: 1400px; margin: 0 auto; padding: 16px 20px; }
 
 .page-header {
   display: flex; align-items: center; gap: 16px; margin-bottom: 24px;

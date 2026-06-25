@@ -163,7 +163,7 @@ body {
 
 .main-content {
   margin-top: var(--topbar-height);
-  margin-bottom: calc(var(--dock-height) + 16px);
+  margin-bottom: calc(var(--dock-height) + 4px);
   flex: 1; overflow-x: hidden; min-height: 0;
 }
 

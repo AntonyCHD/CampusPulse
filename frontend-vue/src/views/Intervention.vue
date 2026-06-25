@@ -312,7 +312,7 @@ const stages = ['监测发现', '初步研判', '证据核查', '响应处置', 
 
 <style scoped>
 .intervention-page {
-  padding: 20px 24px;
+  padding: 16px 20px;
   max-width: 1400px;
 }
 
@@ -773,6 +773,6 @@ const stages = ['监测发现', '初步研判', '证据核查', '响应处置', 
 }
 
 .empty-state {
-  padding: 60px 0;
+  padding: 24px 0;
 }
 </style>

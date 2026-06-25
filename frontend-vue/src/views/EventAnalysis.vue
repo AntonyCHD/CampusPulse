@@ -153,13 +153,13 @@ onMounted(() => { analyze() })
 </template>
 
 <style scoped>
-.event-analysis { max-width:1400px; margin:0 auto; padding:20px 24px; }
+.event-analysis { max-width:1400px; margin:0 auto; padding:16px 20px; }
 .page-header { margin-bottom:24px; display:flex; align-items:center; gap:20px; }
 .back-button { flex-shrink:0; }
 .header-title { flex:1; display:flex; align-items:center; gap:16px; }
 .header-title h1 { font-family:var(--font-heading,'Fira Code',monospace); font-size:24px; font-weight:600; color:#1E3A8A; margin:0; }
 .header-actions { display:flex; gap:12px; }
-.post-card { background:white; border:1px solid #DBEAFE; border-radius:10px; padding:20px 24px; margin-bottom:20px; }
+.post-card { background:white; border:1px solid #DBEAFE; border-radius:10px; padding:16px 20px; margin-bottom:20px; }
 .post-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
 .post-header-left,.post-header-right { display:flex; align-items:center; gap:12px; }
 .post-type-tag { font-size:12px; font-weight:600; padding:2px 10px; border-radius:4px; background:rgba(30,64,175,0.08); color:#1E40AF; }

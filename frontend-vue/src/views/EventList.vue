@@ -302,7 +302,7 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.event-overview { padding: 20px 24px; max-width: 1600px; }
+.event-overview { padding: 16px 20px; max-width: 1600px; }
 
 .filters-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
 .search-input { max-width: 300px; }
