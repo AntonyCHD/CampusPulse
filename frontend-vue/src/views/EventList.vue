@@ -336,7 +336,7 @@ onUnmounted(() => {
   padding: 0 16px;
   height: 100%;
   flex-shrink: 0;
-  background: linear-gradient(135deg, rgba(30, 64, 175, 0.06), rgba(59, 130, 246, 0.04));
+  background: #f0f4ff;
   border-right: 1px solid var(--color-border, #DBEAFE);
   font-family: var(--font-heading, 'Fira Code', monospace);
   font-size: 12px;
