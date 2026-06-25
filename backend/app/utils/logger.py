@@ -37,5 +37,10 @@ def setup_logger():
     return logger
 
 
+def get_logger(name: str = __name__):
+    """Get a logger instance for the given module name."""
+    return log.bind(name=name)
+
+
 # Global logger instance
 log = setup_logger()
