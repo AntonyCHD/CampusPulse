@@ -24,7 +24,7 @@ async def run_baseline(
 
     # 运行评论链方法（我们的方法）
     analysis_service = get_analysis_service()
-    our_result = analysis_service.analyze_event(event, mode="cached", use_llm=False)
+    our_result = await analysis_service.analyze_event(event, mode="cached", use_llm=False)
 
     # 运行基线方法
     baseline_service = get_baseline_service()
