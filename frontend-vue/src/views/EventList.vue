@@ -169,9 +169,10 @@ onUnmounted(() => {
         <el-option label="高风险" value="高" /><el-option label="严重" value="严重" />
       </el-select>
       <el-select v-model="typeFilter" placeholder="事件类型" clearable @change="loadEvents" class="filter-select">
-        <el-option label="学术" value="学术" /><el-option label="生活" value="生活" />
-        <el-option label="安全" value="安全" /><el-option label="管理" value="管理" />
-        <el-option label="舆论" value="舆论" />
+        <el-option label="食堂餐饮" value="食堂餐饮" /><el-option label="宿舍生活" value="宿舍生活" />
+        <el-option label="学术教务" value="学术教务" /><el-option label="校园管理" value="校园管理" />
+        <el-option label="校园安全" value="校园安全" /><el-option label="社团活动" value="社团活动" />
+        <el-option label="网络舆情" value="网络舆情" /><el-option label="综合讨论" value="综合讨论" />
       </el-select>
       <span class="filter-brief" v-if="summary">
         共 {{ filteredEvents.length }} 事件 · {{ summary.high_risk_events }} 高风险
