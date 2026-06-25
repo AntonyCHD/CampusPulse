@@ -98,8 +98,8 @@ const toggleSidebar = () => {
       <div class="sidebar-footer">
         <button class="collapse-btn" @click="toggleSidebar" :title="sidebarCollapsed ? '展开' : '折叠'">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline v-if="sidebarCollapsed" points="11 17 6 12 11 7" />
-            <polyline v-else points="13 17 18 12 13 7" />
+            <polyline v-if="sidebarCollapsed" points="13 7 18 12 13 17" />
+            <polyline v-else points="11 7 6 12 11 17" />
           </svg>
         </button>
         <div class="status-indicator" v-show="!sidebarCollapsed">
@@ -155,14 +155,14 @@ body {
 /* ===== Right Sidebar ===== */
 .sidebar {
   position: fixed;
-  right: 0;
+  left: 0;
   top: 0;
   bottom: 0;
   width: var(--sidebar-width);
   background: rgba(255, 255, 255, 0.78);
   backdrop-filter: blur(18px) saturate(180%);
   -webkit-backdrop-filter: blur(18px) saturate(180%);
-  border-left: 1px solid rgba(30, 64, 175, 0.08);
+  border-right: 1px solid rgba(30, 64, 175, 0.08);
   display: flex;
   flex-direction: column;
   z-index: 100;
@@ -330,15 +330,15 @@ body {
 
 /* Main Content */
 .main-content {
-  margin-right: var(--sidebar-width);
+  margin-left: var(--sidebar-width);
   flex: 1;
   min-height: 100vh;
   overflow-x: hidden;
-  transition: margin-right 0.25s ease;
+  transition: margin-left 0.25s ease;
 }
 
 .sidebar.collapsed ~ .main-content {
-  margin-right: var(--sidebar-collapsed-width);
+  margin-left: var(--sidebar-collapsed-width);
 }
 
 /* Scrollbar */
