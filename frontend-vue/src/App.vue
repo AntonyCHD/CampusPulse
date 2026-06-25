@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue"
+import { computed, ref } from "vue"
 import { useRouter, useRoute, RouterView } from "vue-router"
 import {
   DataBoard, TrendCharts, DataAnalysis, Connection, Files, Setting, Tools,
@@ -31,6 +31,12 @@ const isActive = (path: string): boolean => {
 
 const navigate = (item: DockItem) => {
   router.push(item.path)
+}
+
+const dockCollapsed = ref(false)
+
+const toggleDock = () => {
+  dockCollapsed.value = !dockCollapsed.value
 }
 
 const currentLabel = computed(() => {
@@ -201,4 +207,36 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(30,64,175,0.12); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(30,64,175,0.22); }
+
+/* Collapsed dock */
+.dock.collapsed .dock-inner {
+  gap: 2px;
+}
+
+.dock.collapsed .dock-item {
+  min-width: 44px;
+  padding: 8px 10px;
+}
+
+.dock.collapsed .dock-label {
+  display: none;
+}
+
+.dock-divider {
+  width: 1px;
+  height: 24px;
+  background: rgba(30, 64, 175, 0.12);
+  border-radius: 1px;
+  align-self: center;
+  margin: 0 4px;
+}
+
+.dock-collapse-icon {
+  transition: transform 0.25s ease;
+}
+
+.dock-collapse-icon.flipped {
+  transform: rotate(180deg);
+}
+
 </style>
