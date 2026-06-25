@@ -239,33 +239,12 @@ onUnmounted(() => {
       <div class="marquee-fade marquee-fade-right"></div>
     </div>
 
-    <!-- Dashboard Grid -->
+    <!-- Dashboard Grid: Trend + Charts -->
     <div class="dashboard-grid">
-      <div class="events-panel">
-        <div class="panel-header">
-          <h3>事件列表</h3>
-          <span class="panel-count">{{ filteredEvents.length }}</span>
-        </div>
-        <div class="event-cards-list" v-loading="loading">
-          <div v-for="event in filteredEvents" :key="event.event_id" class="event-row" @click="goToEvent(event.event_id)">
-            <div class="event-row-left">
-              <span class="risk-dot" :style="{ background: getRiskColor(event.risk_level) }" :title="event.risk_level"></span>
-              <div class="event-row-info">
-                <div class="event-row-title">{{ event.title }}</div>
-                <div class="event-row-meta">
-                  <span class="meta-tag">{{ event.event_type }}</span>
-                  <span>{{ event.comment_count }} 评论</span>
-                  <span>{{ event.like_count }} 点赞</span>
-                </div>
-              </div>
-            </div>
-            <div class="event-row-right">
-              <el-tag size="small" effect="dark" :color="getRiskColor(event.risk_level)" class="risk-tag">{{ event.risk_level || '-' }}</el-tag>
-              <span class="event-time">{{ event.created_at?.slice(0, 10) }}</span>
-              <el-icon class="row-arrow"><ArrowRight /></el-icon>
-            </div>
-          </div>
-          <el-empty v-if="!loading && filteredEvents.length === 0" description="暂无事件数据" :image-size="80" />
+      <div class="trend-panel" v-if="summary?.risk_trend?.length">
+        <div class="chart-card trend-card">
+          <div class="chart-card-header">风险趋势</div>
+          <div id="trend-chart" class="chart-box chart-box-tall"></div>
         </div>
       </div>
 
@@ -292,10 +271,34 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <div class="trend-section" v-if="summary?.risk_trend?.length">
-      <div class="chart-card full-width">
-        <div class="chart-card-header">风险趋势</div>
-        <div id="trend-chart" class="chart-box chart-box-tall"></div>
+    <!-- Events List Full Width -->
+    <div class="events-section">
+      <div class="events-panel">
+        <div class="panel-header">
+          <h3>事件列表</h3>
+          <span class="panel-count">{{ filteredEvents.length }}</span>
+        </div>
+        <div class="event-cards-list" v-loading="loading">
+          <div v-for="event in filteredEvents" :key="event.event_id" class="event-row" @click="goToEvent(event.event_id)">
+            <div class="event-row-left">
+              <span class="risk-dot" :style="{ background: getRiskColor(event.risk_level) }" :title="event.risk_level"></span>
+              <div class="event-row-info">
+                <div class="event-row-title">{{ event.title }}</div>
+                <div class="event-row-meta">
+                  <span class="meta-tag">{{ event.event_type }}</span>
+                  <span>{{ event.comment_count }} 评论</span>
+                  <span>{{ event.like_count }} 点赞</span>
+                </div>
+              </div>
+            </div>
+            <div class="event-row-right">
+              <el-tag size="small" effect="dark" :color="getRiskColor(event.risk_level)" class="risk-tag">{{ event.risk_level || '-' }}</el-tag>
+              <span class="event-time">{{ event.created_at?.slice(0, 10) }}</span>
+              <el-icon class="row-arrow"><ArrowRight /></el-icon>
+            </div>
+          </div>
+          <el-empty v-if="!loading && filteredEvents.length === 0" description="暂无事件数据" :image-size="80" />
+        </div>
       </div>
     </div>
   </div>
@@ -459,5 +462,28 @@ onUnmounted(() => {
 .hr-comments { font-size: 11px; color: #94a3b8; flex-shrink: 0; }
 .no-risk-msg { font-size: 13px; color: #94a3b8; text-align: center; padding: 16px 0; }
 
-.trend-section { margin-top: 0; }
+/* Trend panel in dashboard grid */
+.trend-panel {
+  background: white;
+  border: 1px solid var(--color-border, #DBEAFE);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.trend-card {
+  border: none;
+  border-radius: 0;
+  padding: 14px 18px;
+  height: 100%;
+}
+
+.trend-card .chart-box-tall {
+  height: calc(100% - 30px);
+  min-height: 420px;
+}
+
+/* Events Section full width */
+.events-section {
+  margin-top: 20px;
+}
 </style>
