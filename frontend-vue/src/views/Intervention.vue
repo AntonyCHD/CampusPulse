@@ -312,8 +312,8 @@ const stages = ['监测发现', '初步研判', '证据核查', '响应处置', 
 
 <style scoped>
 .intervention-page {
-  padding: 24px;
-  max-width: 1600px;
+  padding: 20px 24px;
+  max-width: 1400px;
 }
 
 .page-header {
@@ -338,7 +338,7 @@ const stages = ['监测发现', '初步研判', '证据核查', '响应处置', 
 .selector-bar {
   background: white;
   border: 2px dashed #DBEAFE;
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 32px;
   text-align: center;
 }

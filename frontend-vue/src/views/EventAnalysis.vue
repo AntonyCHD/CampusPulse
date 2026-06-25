@@ -153,7 +153,7 @@ onMounted(() => { analyze() })
 </template>
 
 <style scoped>
-.event-analysis { max-width:1400px; margin:0 auto; padding:24px; }
+.event-analysis { max-width:1400px; margin:0 auto; padding:20px 24px; }
 .page-header { margin-bottom:24px; display:flex; align-items:center; gap:20px; }
 .back-button { flex-shrink:0; }
 .header-title { flex:1; display:flex; align-items:center; gap:16px; }

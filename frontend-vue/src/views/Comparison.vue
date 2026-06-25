@@ -117,22 +117,22 @@ const enabledMethods = computed(() => {
 </template>
 
 <style scoped>
-.comparison { max-width: 1200px; margin: 0 auto; }
+.comparison { max-width: 1400px; padding: 20px 24px; margin: 0 auto; }
 .page-header { margin-bottom: 24px; }
 .page-header h1 { font-family: var(--font-heading); font-size: 24px; font-weight: 600; color: #1E3A8A; margin: 0 0 8px 0; }
-.subtitle { font-size: 16px; color: #64748B; margin: 0; }
+.subtitle { font-size: 14px; color: #64748B; margin: 0; }
 
-.control-card { margin-bottom: 24px; border-radius: 12px; border: 1px solid #DBEAFE; }
+.control-card { margin-bottom: 24px; border-radius: 10px; border: 1px solid #DBEAFE; }
 .control-card :deep(.el-card__body) { padding: 24px; }
 .control-card :deep(.el-checkbox) { margin-right: 16px; }
 
 .results-area { min-height: 300px; }
 .results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; }
 
-.method-card { border-radius: 12px; border: 1px solid #DBEAFE; transition: all 0.25s ease; }
+.method-card { border-radius: 10px; border: 1px solid #DBEAFE; transition: all 0.25s ease; }
 .method-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
 .method-highlight { border-color: #1E40AF; background: #f8fafc; }
-.method-highlight :deep(.el-card__header) { background: #eff6ff; border-radius: 12px 12px 0 0; }
+.method-highlight :deep(.el-card__header) { background: #eff6ff; border-radius: 10px 12px 0 0; }
 
 .method-header { display: flex; align-items: center; gap: 10px; }
 .method-name { font-size: 16px; flex: 1; }

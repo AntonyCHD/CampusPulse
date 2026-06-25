@@ -263,13 +263,13 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.comment-graph { max-width: 1600px; margin: 0 auto; padding: 24px; }
+.comment-graph { max-width: 1400px; margin: 0 auto; padding: 20px 24px; }
 .page-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
 .page-header h1 { font-family: var(--font-heading, 'Fira Code', monospace); font-size: 24px; font-weight: 600; color: #1E3A8A; margin: 0; }
 .subtitle { font-size: 14px; color: #64748B; margin: 0; }
 
 .selector-bar {
-  background: white; border: 2px dashed #DBEAFE; border-radius: 12px; padding: 32px; text-align: center;
+  background: white; border: 2px dashed #DBEAFE; border-radius: 10px; padding: 32px; text-align: center;
 }
 .selector-hint { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 20px; color: #64748B; font-size: 15px; }
 .selector-icon { width: 20px; height: 20px; color: #3B82F6; }
