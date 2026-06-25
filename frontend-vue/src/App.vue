@@ -333,6 +333,8 @@ body {
   margin-left: var(--sidebar-width);
   flex: 1;
   min-height: 100vh;
+  max-width: 1600px;
+  margin-right: auto;
   overflow-x: hidden;
   transition: margin-left 0.25s ease;
 }

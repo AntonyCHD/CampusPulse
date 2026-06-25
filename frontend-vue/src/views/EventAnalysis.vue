@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api, type AnalysisResult, type Event } from '../api/client'
 import { ArrowLeft, DocumentCopy, Share, Warning, TrendCharts, ChatLineSquare, Clock } from '@element-plus/icons-vue'
+import SkeletonPresets from '../components/SkeletonPresets.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -69,8 +70,16 @@ onMounted(() => { analyze() })
       </div>
     </div>
 
-    <div v-loading="loading" class="analysis-content">
-      <!-- Post Card -->
+    <!-- Skeleton Loading -->
+    <template v-if="loading">
+      <SkeletonPresets section="post-card" />
+      <SkeletonPresets section="metrics" />
+      <SkeletonPresets section="steps" />
+      <SkeletonPresets section="two-col" />
+    </template>
+
+    <!-- Real Content -->
+    <div v-else class="analysis-content">
       <div class="post-card" v-if="eventDetail">
         <div class="post-header">
           <div class="post-header-left">
@@ -87,7 +96,6 @@ onMounted(() => { analyze() })
       </div>
 
       <div v-if="result">
-        <!-- Metrics -->
         <div class="metrics-grid">
           <div class="metric-card" :style="{ borderLeftColor: getRiskColor(result.risk_level), borderLeftWidth: '3px' }">
             <div class="metric-icon" :style="{ background: getRiskColor(result.risk_level) + '18', color: getRiskColor(result.risk_level) }">
@@ -112,7 +120,6 @@ onMounted(() => { analyze() })
           </div>
         </div>
 
-        <!-- Evolution Path -->
         <div class="section-card">
           <div class="section-header"><TrendCharts class="section-icon-svg" /><span class="section-title">演化路径</span></div>
           <el-steps :active="result.evolution_path.length" align-center class="evolution-steps">
@@ -120,7 +127,6 @@ onMounted(() => { analyze() })
           </el-steps>
         </div>
 
-        <!-- Signals + Key Comments Grid -->
         <div class="analysis-grid">
           <div class="section-card">
             <div class="section-header"><Warning class="section-icon-svg" style="color:#f97316" /><span class="section-title">风险信号</span><el-tag type="warning" size="large">{{ result.risk_signals.length }} 个</el-tag></div>
@@ -141,7 +147,6 @@ onMounted(() => { analyze() })
           </div>
         </div>
 
-        <!-- Actions -->
         <div class="action-row">
           <el-button type="primary" size="large" @click="viewGraph"><DocumentCopy style="margin-right:6px" /> 查看评论链图谱</el-button>
           <el-button size="large" @click="goToIntervention">查看处置方案</el-button>
@@ -153,13 +158,13 @@ onMounted(() => { analyze() })
 </template>
 
 <style scoped>
-.event-analysis { max-width:1400px; margin:0 auto; padding:16px 20px; }
+.event-analysis { padding: 16px 24px; }
 .page-header { margin-bottom:24px; display:flex; align-items:center; gap:20px; }
 .back-button { flex-shrink:0; }
 .header-title { flex:1; display:flex; align-items:center; gap:16px; }
 .header-title h1 { font-family:var(--font-heading,'Fira Code',monospace); font-size:24px; font-weight:600; color:#1E3A8A; margin:0; }
 .header-actions { display:flex; gap:12px; }
-.post-card { background:white; border:1px solid #DBEAFE; border-radius:10px; padding:16px 20px; margin-bottom:20px; }
+.post-card { background:white; border:1px solid #DBEAFE; border-radius:10px; padding: 16px 24px; margin-bottom:20px; }
 .post-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
 .post-header-left,.post-header-right { display:flex; align-items:center; gap:12px; }
 .post-type-tag { font-size:12px; font-weight:600; padding:2px 10px; border-radius:4px; background:rgba(30,64,175,0.08); color:#1E40AF; }

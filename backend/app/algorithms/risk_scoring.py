@@ -110,7 +110,7 @@ class RiskScoringEngine:
         post_signals = [s for s in signals if s.comment_id is None]
 
         if not post_signals:
-            return 0.3  # 基础分
+            return 0.4  # 基础分
 
         # 取最高分
         max_score = max(s.score for s in post_signals)
@@ -182,13 +182,13 @@ class RiskScoringEngine:
     ) -> float:
         """计算图结构影响力 (0-1)"""
         if not graph_centrality:
-            return 0.5  # 默认中等影响力
+            return 0.6  # 默认中等影响力
 
         # 找出有风险信号的评论
         risk_comment_ids = {s.comment_id for s in signals if s.comment_id}
 
         if not risk_comment_ids:
-            return 0.3
+            return 0.4
 
         # 计算这些评论的平均中心性
         risk_centralities = [
@@ -196,12 +196,12 @@ class RiskScoringEngine:
         ]
 
         if not risk_centralities:
-            return 0.3
+            return 0.4
 
         avg_centrality = np.mean(risk_centralities)
 
         # 归一化到 0-1
-        return min(1.0, avg_centrality * 5)  # 假设中心性通常 < 0.2
+        return min(1.0, avg_centrality * 7)  # 假设中心性通常 < 0.2
 
     def _compute_burst_score(self, event: dict[str, Any]) -> float:
         """计算突增程度 (0-1)"""
@@ -214,13 +214,13 @@ class RiskScoringEngine:
         comment_count = len(comments)
 
         if comment_count < 10:
-            return 0.2
+            return 0.4
         elif comment_count < 30:
-            return 0.5
+            return 0.65
         elif comment_count < 50:
-            return 0.7
+            return 0.8
         else:
-            return 0.9
+            return 0.95
 
     def _compute_uncertainty_score(self, signals: list[RiskSignal]) -> float:
         """计算事实不确定性 (0-1)"""
@@ -234,11 +234,11 @@ class RiskScoringEngine:
 
     def _map_score_to_level(self, score: float) -> RiskLevel:
         """映射分数到风险等级"""
-        if score < 40:
+        if score < 30:
             return RiskLevel.LOW
-        elif score < 65:
+        elif score < 50:
             return RiskLevel.MEDIUM
-        elif score < 85:
+        elif score < 70:
             return RiskLevel.HIGH
         else:
             return RiskLevel.CRITICAL

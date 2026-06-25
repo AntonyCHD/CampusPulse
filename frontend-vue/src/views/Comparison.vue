@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue"
 import { api } from "../api/client"
+import SkeletonPresets from "../components/SkeletonPresets.vue"
 
 const eventId = ref("E2889899")
 const loading = ref(false)
@@ -77,7 +78,19 @@ const enabledMethods = computed(() => {
       </el-row>
     </el-card>
 
-    <div v-loading="loading" class="results-area">
+    <!-- Skeleton Loading -->
+    <div v-if="loading" class="results-area">
+      <div class="results-grid">
+        <div v-for="i in 3" :key="i" class="sk-result-card" :style="{ animationDelay: i * 50 + 'ms' }">
+          <div class="sk-shimmer sk-result-header"></div>
+          <div class="sk-shimmer sk-result-body"></div>
+          <div class="sk-shimmer sk-result-detail"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div v-else class="results-area">
       <el-empty v-if="!result" description="输入事件ID并点击运行对比" :image-size="120" />
       <div v-else class="results-grid">
         <el-card
@@ -117,13 +130,13 @@ const enabledMethods = computed(() => {
 </template>
 
 <style scoped>
-.comparison { max-width: 1400px; padding: 16px 20px; margin: 0 auto; }
+.comparison { padding: 16px 24px; }
 .page-header { margin-bottom: 24px; }
 .page-header h1 { font-family: var(--font-heading); font-size: 24px; font-weight: 600; color: #1E3A8A; margin: 0 0 8px 0; }
 .subtitle { font-size: 14px; color: #64748B; margin: 0; }
 
 .control-card { margin-bottom: 24px; border-radius: 10px; border: 1px solid #DBEAFE; }
-.control-card :deep(.el-card__body) { padding: 16px 20px; }
+.control-card :deep(.el-card__body) { padding: 16px 24px; }
 .control-card :deep(.el-checkbox) { margin-right: 16px; }
 
 .results-area { min-height: 120px; }
@@ -144,4 +157,33 @@ const enabledMethods = computed(() => {
 .detail-row { font-size: 13px; display: flex; gap: 8px; }
 .detail-key { color: #64748B; min-width: 100px; }
 .detail-val { color: #1E3A8A; font-weight: 500; }
+
+/* ---- Skeleton Results ---- */
+.sk-shimmer {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 6px;
+}
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.sk-result-card {
+  background: white; border: 1px solid #DBEAFE; border-radius: 10px; padding: 16px 24px;
+  animation: sk-fade-in 0.25s ease-out both;
+}
+.sk-result-header { height: 20px; width: 180px; margin-bottom: 16px; }
+.sk-result-body { height: 60px; margin-bottom: 12px; }
+.sk-result-detail { height: 40px; width: 60%; }
+
+@keyframes sk-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk-shimmer { animation: none; background: #e2e8f0; }
+  .sk-result-card { animation: none; opacity: 1; transform: none; }
+}
 </style>

@@ -49,9 +49,9 @@ class Settings(BaseSettings):
 
     # Analysis Configuration
     top_n_comments: int = 20
-    semantic_threshold: float = 0.80
+    semantic_threshold: float = 0.75
     topic_threshold: float = 0.78
-    resonance_threshold: float = 0.55
+    resonance_threshold: float = 0.45
 
     # Safety & Privacy
     enable_anonymization: bool = True

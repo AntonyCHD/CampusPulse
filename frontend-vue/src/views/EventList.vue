@@ -4,6 +4,7 @@ import { useRouter } from "vue-router"
 import { api, type Event, type DashboardSummary } from "../api/client"
 import { Search, ArrowRight, ArrowLeft, ArrowRight as ArrowRightIcon } from "@element-plus/icons-vue"
 import * as echarts from "echarts"
+import SkeletonPresets from "../components/SkeletonPresets.vue"
 
 const router = useRouter()
 const events = ref<Event[]>([])
@@ -22,7 +23,7 @@ const marqueePaused = ref(false)
 const marqueeRef = ref<HTMLElement | null>(null)
 let marqueeInterval: ReturnType<typeof setInterval> | null = null
 const marqueeScrollPos = ref(0)
-const MARQUEE_SPEED = 1.2 // px per frame
+const MARQUEE_SPEED = 1.2
 
 const loadEvents = async () => {
   loading.value = true
@@ -33,13 +34,13 @@ const loadEvents = async () => {
     })
     events.value = response.data.items
     summary.value = response.data.summary
-    await nextTick()
-    renderCharts()
-    startMarquee()
   } catch (error) {
     console.error("Failed to load events:", error)
   } finally {
     loading.value = false
+    await nextTick()
+    renderCharts()
+    startMarquee()
   }
 }
 
@@ -58,14 +59,13 @@ const startMarquee = () => {
       marqueeScrollPos.value = 0
     }
     track.style.transform = `translateX(${-marqueeScrollPos.value}px)`
-  }, 16) // ~60fps
+  }, 16)
 }
 
 const stopMarquee = () => {
   if (marqueeInterval) { clearInterval(marqueeInterval); marqueeInterval = null }
 }
 
-// Highlighted events for marquee: pick highest risk first, then most commented
 const marqueeEvents = computed(() => {
   const riskOrder: Record<string, number> = { "严重": 0, "高": 1, "中": 2, "低": 3 }
   return [...events.value]
@@ -99,7 +99,7 @@ const renderCharts = () => {
   if (!summary.value) return
   const riskDistDom = document.getElementById("risk-dist-chart")
   if (riskDistDom && summary.value.risk_distribution) {
-    if (!riskDistChart) riskDistChart = echarts.init(riskDistDom)
+    riskDistChart?.dispose(); riskDistChart = echarts.init(riskDistDom)
     const dist = summary.value.risk_distribution
     riskDistChart.setOption({
       tooltip: { trigger: "item", formatter: "{b}: {c} ({d}%)" },
@@ -118,7 +118,7 @@ const renderCharts = () => {
   }
   const typeDistDom = document.getElementById("type-dist-chart")
   if (typeDistDom && summary.value.event_type_distribution) {
-    if (!typeDistChart) typeDistChart = echarts.init(typeDistDom)
+    typeDistChart?.dispose(); typeDistChart = echarts.init(typeDistDom)
     const dist = summary.value.event_type_distribution
     typeDistChart.setOption({
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
@@ -133,7 +133,7 @@ const renderCharts = () => {
   }
   const trendDom = document.getElementById("trend-chart")
   if (trendDom && summary.value.risk_trend?.length) {
-    if (!trendChart) trendChart = echarts.init(trendDom)
+    trendChart?.dispose(); trendChart = echarts.init(trendDom)
     const trend = summary.value.risk_trend
     trendChart.setOption({
       tooltip: { trigger: "axis" },
@@ -161,155 +161,182 @@ onUnmounted(() => {
 
 <template>
   <div class="event-overview">
-    <!-- Filters Row -->
-    <div class="filters-row">
-      <el-input v-model="searchQuery" placeholder="搜索事件标题或ID" :prefix-icon="Search" clearable class="search-input" />
-      <el-select v-model="riskFilter" placeholder="风险等级" clearable @change="loadEvents" class="filter-select">
-        <el-option label="低风险" value="低" /><el-option label="中风险" value="中" />
-        <el-option label="高风险" value="高" /><el-option label="严重" value="严重" />
-      </el-select>
-      <el-select v-model="typeFilter" placeholder="事件类型" clearable @change="loadEvents" class="filter-select">
-        <el-option label="食堂餐饮" value="食堂餐饮" /><el-option label="宿舍生活" value="宿舍生活" />
-        <el-option label="学术教务" value="学术教务" /><el-option label="校园管理" value="校园管理" />
-        <el-option label="校园安全" value="校园安全" /><el-option label="社团活动" value="社团活动" />
-        <el-option label="网络舆情" value="网络舆情" /><el-option label="综合讨论" value="综合讨论" />
-      </el-select>
-      <span class="filter-brief" v-if="summary">
-        共 {{ filteredEvents.length }} 事件 · {{ summary.high_risk_events }} 高风险
-      </span>
-    </div>
 
-    <!-- Summary Metrics Row -->
-    <div class="metrics-row" v-if="summary">
-      <div class="metric-inline">
-        <span class="mi-value">{{ summary.total_events }}</span>
-        <span class="mi-label">累计事件</span>
-      </div>
-      <div class="metric-inline">
-        <span class="mi-value">{{ summary.today_events }}</span>
-        <span class="mi-label">今日新增</span>
-      </div>
-      <div class="metric-inline metric-inline-highlight">
-        <span class="mi-value" style="color:#DC2626">{{ summary.high_risk_events }}</span>
-        <span class="mi-label">高风险</span>
-      </div>
-    </div>
 
-    <!-- Marquee Carousel -->
-    <div
-      v-if="marqueeEvents.length > 0"
-      ref="marqueeRef"
-      class="marquee-container"
-      @mouseenter="marqueePaused = true"
-      @mouseleave="marqueePaused = false"
-    >
-      <div class="marquee-label">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        <span>实时关注</span>
-      </div>
-      <div class="marquee-track">
-        <div
-          v-for="event in marqueeEvents"
-          :key="event.event_id"
-          class="marquee-card"
-          :style="{ borderLeftColor: getRiskColor(event.risk_level) }"
-          @click="goToEvent(event.event_id)"
-        >
-          <span class="marquee-card-risk" :style="{ color: getRiskColor(event.risk_level) }">
-            {{ event.risk_level }}
-          </span>
-          <span class="marquee-card-title">{{ event.title }}</span>
-          <span class="marquee-card-type">{{ event.event_type }}</span>
-        </div>
-        <!-- Duplicate for seamless loop -->
-        <div
-          v-for="event in marqueeEvents"
-          :key="event.event_id + '-dup'"
-          class="marquee-card"
-          :style="{ borderLeftColor: getRiskColor(event.risk_level) }"
-          @click="goToEvent(event.event_id)"
-        >
-          <span class="marquee-card-risk" :style="{ color: getRiskColor(event.risk_level) }">
-            {{ event.risk_level }}
-          </span>
-          <span class="marquee-card-title">{{ event.title }}</span>
-          <span class="marquee-card-type">{{ event.event_type }}</span>
+    <!-- Skeleton Loading -->
+    <template v-if="loading">
+      <SkeletonPresets section="metrics" />
+      <SkeletonPresets section="section" />
+      <SkeletonPresets section="marquee" />
+      <div class="dashboard-grid">
+        <SkeletonPresets section="chart" />
+        <div class="charts-panel">
+          <SkeletonPresets section="chart" />
+          <SkeletonPresets section="chart" />
         </div>
       </div>
-      <div class="marquee-fade marquee-fade-left"></div>
-      <div class="marquee-fade marquee-fade-right"></div>
-    </div>
+      <div class="events-section">
+        <SkeletonPresets section="cards" />
+      </div>
+    </template>
 
-    <!-- Dashboard Grid: Trend + Charts -->
-    <div class="dashboard-grid">
-      <div class="trend-panel" v-if="summary?.risk_trend?.length">
-        <div class="chart-card trend-card">
-          <div class="chart-card-header">风险趋势</div>
-          <div id="trend-chart" class="chart-box chart-box-tall"></div>
+    <!-- Real Content -->
+    <template v-else>
+      <!-- Summary Metrics Row -->
+      <div class="metrics-row" v-if="summary">
+        <div class="metric-inline">
+          <span class="mi-value">{{ summary.total_events }}</span>
+          <span class="mi-label">累计事件</span>
+        </div>
+        <div class="metric-inline">
+          <span class="mi-value">{{ summary.today_events }}</span>
+          <span class="mi-label">今日新增</span>
+        </div>
+        <div class="metric-inline metric-inline-highlight">
+          <span class="mi-value" style="color:#DC2626">{{ summary.high_risk_events }}</span>
+          <span class="mi-label">高风险</span>
         </div>
       </div>
 
-      <div class="charts-panel">
-        <div class="chart-card">
-          <div class="chart-card-header">风险分布</div>
-          <div id="risk-dist-chart" class="chart-box"></div>
+      <!-- High Risk Alert Strip -->
+      <div class="high-risk-strip" v-if="highRiskEvents.length > 0 && !loading">
+        <div class="hrs-header">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span>高风险关注</span>
+          <span class="hrs-count">{{ highRiskEvents.length }}</span>
         </div>
-        <div class="chart-card">
-          <div class="chart-card-header">事件类型</div>
-          <div id="type-dist-chart" class="chart-box"></div>
-        </div>
-        <div class="chart-card">
-          <div class="chart-card-header">高风险关注</div>
-          <div class="high-risk-list">
-            <div v-for="event in highRiskEvents.slice(0, 5)" :key="event.event_id" class="high-risk-item" @click="goToEvent(event.event_id)">
-              <span class="hr-badge" :style="{ background: getRiskColor(event.risk_level) + '18', color: getRiskColor(event.risk_level) }">{{ event.risk_level }}</span>
-              <span class="hr-title">{{ event.title }}</span>
-              <span class="hr-comments">{{ event.comment_count }}评</span>
-            </div>
-            <div v-if="highRiskEvents.length === 0" class="no-risk-msg">暂无高风险事件</div>
+        <div class="hrs-items">
+          <div v-for="event in highRiskEvents.slice(0, 6)" :key="event.event_id" class="hrs-item" @click="goToEvent(event.event_id)">
+            <span class="hrs-badge" :style="{ background: getRiskColor(event.risk_level) + '18', color: getRiskColor(event.risk_level) }">{{ event.risk_level }}</span>
+            <span class="hrs-title">{{ event.title }}</span>
+            <span class="hrs-meta">{{ event.event_type }} · {{ event.comment_count }}评</span>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Events List Full Width -->
-    <div class="events-section">
-      <div class="events-panel">
-        <div class="panel-header">
-          <h3>事件列表</h3>
-          <span class="panel-count">{{ filteredEvents.length }}</span>
+      <!-- Marquee Carousel -->
+      <div
+        v-if="marqueeEvents.length > 0"
+        ref="marqueeRef"
+        class="marquee-container"
+        @mouseenter="marqueePaused = true"
+        @mouseleave="marqueePaused = false"
+      >
+        <div class="marquee-label">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <span>实时关注</span>
         </div>
-        <div class="event-cards-list" v-loading="loading">
-          <div v-for="event in filteredEvents" :key="event.event_id" class="event-row" @click="goToEvent(event.event_id)">
-            <div class="event-row-left">
-              <span class="risk-dot" :style="{ background: getRiskColor(event.risk_level) }" :title="event.risk_level"></span>
-              <div class="event-row-info">
-                <div class="event-row-title">{{ event.title }}</div>
-                <div class="event-row-meta">
-                  <span class="meta-tag">{{ event.event_type }}</span>
-                  <span>{{ event.comment_count }} 评论</span>
-                  <span>{{ event.like_count }} 点赞</span>
+        <div class="marquee-track">
+          <div
+            v-for="event in marqueeEvents"
+            :key="event.event_id"
+            class="marquee-card"
+            :style="{ borderLeftColor: getRiskColor(event.risk_level) }"
+            @click="goToEvent(event.event_id)"
+          >
+            <span class="marquee-card-risk" :style="{ color: getRiskColor(event.risk_level) }">
+              {{ event.risk_level }}
+            </span>
+            <span class="marquee-card-title">{{ event.title }}</span>
+            <span class="marquee-card-type">{{ event.event_type }}</span>
+          </div>
+          <div
+            v-for="event in marqueeEvents"
+            :key="event.event_id + '-dup'"
+            class="marquee-card"
+            :style="{ borderLeftColor: getRiskColor(event.risk_level) }"
+            @click="goToEvent(event.event_id)"
+          >
+            <span class="marquee-card-risk" :style="{ color: getRiskColor(event.risk_level) }">
+              {{ event.risk_level }}
+            </span>
+            <span class="marquee-card-title">{{ event.title }}</span>
+            <span class="marquee-card-type">{{ event.event_type }}</span>
+          </div>
+        </div>
+        <div class="marquee-fade marquee-fade-left"></div>
+        <div class="marquee-fade marquee-fade-right"></div>
+      </div>
+
+      <!-- Dashboard Grid: Trend + Charts -->
+      <div class="dashboard-grid">
+        <div class="trend-panel" v-if="summary?.risk_trend?.length">
+          <div class="chart-card trend-card">
+            <div class="chart-card-header">风险趋势</div>
+            <div id="trend-chart" class="chart-box chart-box-tall"></div>
+          </div>
+        </div>
+
+        <div class="charts-panel">
+          <div class="chart-card">
+            <div class="chart-card-header">风险分布</div>
+            <div id="risk-dist-chart" class="chart-box"></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-header">事件类型</div>
+            <div id="type-dist-chart" class="chart-box"></div>
+          </div>
+
+        </div>
+      </div>
+
+
+      <!-- Filters Row -->
+      <div class="filters-row">
+        <el-input v-model="searchQuery" placeholder="搜索事件标题或ID" :prefix-icon="Search" clearable class="search-input" />
+        <el-select v-model="riskFilter" placeholder="风险等级" clearable @change="loadEvents" class="filter-select">
+          <el-option label="低风险" value="低" /><el-option label="中风险" value="中" />
+          <el-option label="高风险" value="高" /><el-option label="严重" value="严重" />
+        </el-select>
+        <el-select v-model="typeFilter" placeholder="事件类型" clearable @change="loadEvents" class="filter-select">
+          <el-option label="食堂餐饮" value="食堂餐饮" /><el-option label="宿舍生活" value="宿舍生活" />
+          <el-option label="学术教务" value="学术教务" /><el-option label="校园管理" value="校园管理" />
+          <el-option label="校园安全" value="校园安全" /><el-option label="社团活动" value="社团活动" />
+          <el-option label="网络舆情" value="网络舆情" /><el-option label="综合讨论" value="综合讨论" />
+        </el-select>
+        <span class="filter-brief" v-if="!loading && summary">
+          共 {{ filteredEvents.length }} 事件 · {{ summary.high_risk_events }} 高风险
+        </span>
+      </div>
+      <!-- Events List Full Width -->
+      <div class="events-section">
+        <div class="events-panel">
+          <div class="panel-header">
+            <h3>事件列表</h3>
+            <span class="panel-count">{{ filteredEvents.length }}</span>
+          </div>
+          <div class="event-cards-list">
+            <div v-for="event in filteredEvents" :key="event.event_id" class="event-row" @click="goToEvent(event.event_id)">
+              <div class="event-row-left">
+                <span class="risk-dot" :style="{ background: getRiskColor(event.risk_level) }" :title="event.risk_level"></span>
+                <div class="event-row-info">
+                  <div class="event-row-title">{{ event.title }}</div>
+                  <div class="event-row-meta">
+                    <span class="meta-tag">{{ event.event_type }}</span>
+                    <span>{{ event.comment_count }} 评论</span>
+                    <span>{{ event.like_count }} 点赞</span>
+                  </div>
                 </div>
               </div>
+              <div class="event-row-right">
+                <el-tag size="small" effect="dark" :color="getRiskColor(event.risk_level)" class="risk-tag">{{ event.risk_level || '-' }}</el-tag>
+                <span class="event-time">{{ event.created_at?.slice(0, 10) }}</span>
+                <el-icon class="row-arrow"><ArrowRight /></el-icon>
+              </div>
             </div>
-            <div class="event-row-right">
-              <el-tag size="small" effect="dark" :color="getRiskColor(event.risk_level)" class="risk-tag">{{ event.risk_level || '-' }}</el-tag>
-              <span class="event-time">{{ event.created_at?.slice(0, 10) }}</span>
-              <el-icon class="row-arrow"><ArrowRight /></el-icon>
-            </div>
+            <el-empty v-if="filteredEvents.length === 0" description="暂无事件数据" :image-size="80" />
           </div>
-          <el-empty v-if="!loading && filteredEvents.length === 0" description="暂无事件数据" :image-size="80" />
         </div>
       </div>
-    </div>
+    </template>
   </div>
 </template>
 
 <style scoped>
-.event-overview { padding: 16px 20px; max-width: 1600px; }
+.event-overview { padding: 16px 24px; }
 
 .filters-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-.search-input { max-width: 300px; }
+.search-input { }
 .filter-select { width: 130px; }
 .filter-brief { font-size: 13px; color: #64748B; margin-left: auto; white-space: nowrap; }
 
@@ -388,7 +415,6 @@ onUnmounted(() => {
   font-size: 13px;
   font-weight: 500;
   color: #1e293b;
-  max-width: 240px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -411,7 +437,7 @@ onUnmounted(() => {
 }
 
 .marquee-fade-left {
-  left: 108px; /* after the label */
+  left: 108px;
   background: linear-gradient(to right, white 0%, transparent 100%);
 }
 
@@ -452,8 +478,8 @@ onUnmounted(() => {
 .chart-card { background: white; border: 1px solid var(--color-border, #DBEAFE); border-radius: 10px; padding: 14px 18px; }
 .chart-card.full-width { width: 100%; }
 .chart-card-header { font-family: var(--font-heading); font-size: 12px; font-weight: 600; color: #1E3A8A; margin-bottom: 6px; letter-spacing: 0.3px; }
-.chart-box { height: 180px; }
-.chart-box-tall { height: 280px; }
+.chart-box { width: 100%; height: 180px; }
+.chart-box-tall { width: 100%; height: 280px; }
 
 .high-risk-list { display: flex; flex-direction: column; gap: 6px; }
 .high-risk-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; cursor: pointer; transition: background 0.15s; border: 1px solid transparent; }
@@ -461,9 +487,80 @@ onUnmounted(() => {
 .hr-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; flex-shrink: 0; }
 .hr-title { font-size: 13px; color: #1e293b; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hr-comments { font-size: 11px; color: #94a3b8; flex-shrink: 0; }
+
+/* ===== High Risk Alert Strip ===== */
+.high-risk-strip {
+  background: linear-gradient(135deg, #fef2f2 0%, #fff5f5 100%);
+  border: 1px solid #fecaca;
+  border-left: 4px solid #DC2626;
+  border-radius: 10px;
+  padding: 14px 20px;
+  margin-bottom: 16px;
+}
+.hrs-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-weight: 600;
+  color: #DC2626;
+}
+.hrs-count {
+  font-size: 11px;
+  background: #DC2626;
+  color: white;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+.hrs-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.hrs-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: white;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex: 0 0 auto;
+}
+.hrs-item:hover {
+  background: #fff5f5;
+  border-color: #f87171;
+  box-shadow: 0 2px 8px rgba(220,38,38,0.08);
+}
+.hrs-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.hrs-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1e293b;
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hrs-meta {
+  font-size: 11px;
+  color: #94a3b8;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 .no-risk-msg { font-size: 13px; color: #94a3b8; text-align: center; padding: 16px 0; }
 
-/* Trend panel in dashboard grid */
 .trend-panel {
   background: white;
   border: 1px solid var(--color-border, #DBEAFE);
@@ -483,8 +580,7 @@ onUnmounted(() => {
   min-height: 420px;
 }
 
-/* Events Section full width */
 .events-section {
-  margin-top: 20px;
+  margin-top: 16px;
 }
 </style>

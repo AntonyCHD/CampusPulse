@@ -4,6 +4,7 @@ import { useRoute, useRouter } from "vue-router"
 import { api, type GraphData, type GraphNode, type Event } from "../api/client"
 import { Network } from "vis-network"
 import { ArrowLeft, Select } from "@element-plus/icons-vue"
+import SkeletonPresets from "../components/SkeletonPresets.vue"
 
 const route = useRoute()
 const router = useRouter()
@@ -42,12 +43,12 @@ const loadGraph = async () => {
     const response = await api.getGraph(eventId.value)
     graphData.value = response.data
     computeStats()
-    await nextTick()
-    renderGraph()
   } catch (error) {
     console.error("Failed to load graph:", error)
   } finally {
     loading.value = false
+    await nextTick()
+    renderGraph()
   }
 }
 
@@ -178,92 +179,96 @@ onUnmounted(() => {
     </div>
 
     <template v-if="eventId">
-      <!-- edge toggles -->
-      <div class="toggle-bar">
-        <el-checkbox v-model="showReply" size="large" border>
-          <span class="toggle-label">
-            <span class="edge-dot" style="background: #64748b"></span> 回复边
-            <span class="toggle-count">{{ stats.replyEdges }}</span>
-          </span>
-        </el-checkbox>
-        <el-checkbox v-model="showTemporal" size="large" border>
-          <span class="toggle-label">
-            <span class="edge-dot" style="background: #cbd5e1"></span> 时间线边
-            <span class="toggle-count">{{ stats.temporalEdges }}</span>
-          </span>
-        </el-checkbox>
-        <el-checkbox v-model="showSemantic" size="large" border>
-          <span class="toggle-label">
-            <span class="edge-dot" style="background: #8b5cf6"></span> 语义边
-            <span class="toggle-count">{{ stats.semanticEdges }}</span>
-          </span>
-        </el-checkbox>
-      </div>
+      <!-- Skeleton Loading -->
+      <template v-if="loading">
+        <SkeletonPresets section="graph" />
+      </template>
 
-      <!-- legend row -->
-      <div class="legend-bar">
-        <span class="legend-item"><span class="legend-node" style="background: #1E40AF"></span> 主贴</span>
-        <span class="legend-item"><span class="legend-node" style="background: #ef4444"></span> 高风险(&gt;0.7)</span>
-        <span class="legend-item"><span class="legend-node" style="background: #f59e0b"></span> 中风险(&gt;0.4)</span>
-        <span class="legend-item"><span class="legend-node" style="background: #10b981"></span> 低风险</span>
-      </div>
+      <!-- Real Content -->
+      <template v-else>
+        <div class="toggle-bar">
+          <el-checkbox v-model="showReply" size="large" border>
+            <span class="toggle-label">
+              <span class="edge-dot" style="background: #64748b"></span> 回复边
+              <span class="toggle-count">{{ stats.replyEdges }}</span>
+            </span>
+          </el-checkbox>
+          <el-checkbox v-model="showTemporal" size="large" border>
+            <span class="toggle-label">
+              <span class="edge-dot" style="background: #cbd5e1"></span> 时间线边
+              <span class="toggle-count">{{ stats.temporalEdges }}</span>
+            </span>
+          </el-checkbox>
+          <el-checkbox v-model="showSemantic" size="large" border>
+            <span class="toggle-label">
+              <span class="edge-dot" style="background: #8b5cf6"></span> 语义边
+              <span class="toggle-count">{{ stats.semanticEdges }}</span>
+            </span>
+          </el-checkbox>
+        </div>
 
-      <div v-loading="loading">
+        <div class="legend-bar">
+          <span class="legend-item"><span class="legend-node" style="background: #1E40AF"></span> 主贴</span>
+          <span class="legend-item"><span class="legend-node" style="background: #ef4444"></span> 高风险(&gt;0.7)</span>
+          <span class="legend-item"><span class="legend-node" style="background: #f59e0b"></span> 中风险(&gt;0.4)</span>
+          <span class="legend-item"><span class="legend-node" style="background: #10b981"></span> 低风险</span>
+        </div>
+
         <div ref="containerRef" class="graph-container" />
-      </div>
 
-      <div class="info-panel">
-        <div class="stats-section">
-          <div class="stat-item">
-            <span class="stat-num">{{ stats.totalNodes }}</span>
-            <span class="stat-text">节点总数</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-num">{{ stats.replyEdges }}</span>
-            <span class="stat-text">回复边</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-num">{{ stats.temporalEdges }}</span>
-            <span class="stat-text">时间边</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-num">{{ stats.semanticEdges }}</span>
-            <span class="stat-text">语义边</span>
-          </div>
-          <div class="stat-item stat-highlight">
-            <span class="stat-num">{{ stats.highRiskNodes }}</span>
-            <span class="stat-text">中高风险节点</span>
-          </div>
-        </div>
-
-        <div class="node-detail" v-if="selectedNode">
-          <div class="node-detail-header">节点详情</div>
-          <div class="node-detail-body">
-            <div class="nd-row"><span class="nd-label">ID</span><span class="nd-value">{{ selectedNode.node_id }}</span></div>
-            <div class="nd-row"><span class="nd-label">标签</span><span class="nd-value">{{ selectedNode.label }}</span></div>
-            <div class="nd-row"><span class="nd-label">类型</span>
-              <el-tag size="small" :type="selectedNode.node_type === 'post' ? 'info' : ''">
-                {{ selectedNode.node_type === 'post' ? '主贴' : '评论' }}
-              </el-tag>
+        <div class="info-panel">
+          <div class="stats-section">
+            <div class="stat-item">
+              <span class="stat-num">{{ stats.totalNodes }}</span>
+              <span class="stat-text">节点总数</span>
             </div>
-            <div class="nd-row">
-              <span class="nd-label">风险分</span>
-              <span class="nd-value" :style="{ color: selectedNode.risk_score > 0.7 ? '#ef4444' : selectedNode.risk_score > 0.4 ? '#f59e0b' : '#10b981', fontWeight: '600' }">
-                {{ selectedNode.risk_score.toFixed(2) }}
-              </span>
+            <div class="stat-item">
+              <span class="stat-num">{{ stats.replyEdges }}</span>
+              <span class="stat-text">回复边</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-num">{{ stats.temporalEdges }}</span>
+              <span class="stat-text">时间边</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-num">{{ stats.semanticEdges }}</span>
+              <span class="stat-text">语义边</span>
+            </div>
+            <div class="stat-item stat-highlight">
+              <span class="stat-num">{{ stats.highRiskNodes }}</span>
+              <span class="stat-text">中高风险节点</span>
             </div>
           </div>
+
+          <div class="node-detail" v-if="selectedNode">
+            <div class="node-detail-header">节点详情</div>
+            <div class="node-detail-body">
+              <div class="nd-row"><span class="nd-label">ID</span><span class="nd-value">{{ selectedNode.node_id }}</span></div>
+              <div class="nd-row"><span class="nd-label">标签</span><span class="nd-value">{{ selectedNode.label }}</span></div>
+              <div class="nd-row"><span class="nd-label">类型</span>
+                <el-tag size="small" :type="selectedNode.node_type === 'post' ? 'info' : ''">
+                  {{ selectedNode.node_type === 'post' ? '主贴' : '评论' }}
+                </el-tag>
+              </div>
+              <div class="nd-row">
+                <span class="nd-label">风险分</span>
+                <span class="nd-value" :style="{ color: selectedNode.risk_score > 0.7 ? '#ef4444' : selectedNode.risk_score > 0.4 ? '#f59e0b' : '#10b981', fontWeight: '600' }">
+                  {{ selectedNode.risk_score.toFixed(2) }}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="node-detail node-detail-empty" v-else>
+            <span class="empty-hint">点击图谱节点查看详情</span>
+          </div>
         </div>
-        <div class="node-detail node-detail-empty" v-else>
-          <span class="empty-hint">点击图谱节点查看详情</span>
-        </div>
-      </div>
+      </template>
     </template>
   </div>
 </template>
 
 <style scoped>
-.comment-graph { max-width: 1400px; margin: 0 auto; padding: 16px 20px; }
+.comment-graph { padding: 16px 24px; }
 .page-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
 .page-header h1 { font-family: var(--font-heading, 'Fira Code', monospace); font-size: 24px; font-weight: 600; color: #1E3A8A; margin: 0; }
 .subtitle { font-size: 14px; color: #64748B; margin: 0; }
@@ -281,7 +286,7 @@ onUnmounted(() => {
 }
 .event-chip:hover { border-color: #3B82F6; background: #eff6ff; }
 .chip-id { font-family: var(--font-heading); font-size: 12px; color: #3B82F6; font-weight: 600; }
-.chip-title { color: #1e293b; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chip-title { color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .toggle-bar { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
 .toggle-bar :deep(.el-checkbox) { padding: 8px 16px; border-radius: 8px; border: 1px solid #e3e8ef; background: white; transition: all 0.2s ease; }
@@ -302,7 +307,7 @@ onUnmounted(() => {
 .info-panel { display: grid; grid-template-columns: 1fr 280px; gap: 16px; }
 .stats-section {
   display: flex; gap: 16px; flex-wrap: wrap;
-  background: white; border-radius: 10px; border: 1px solid #DBEAFE; padding: 16px 20px;
+  background: white; border-radius: 10px; border: 1px solid #DBEAFE; padding: 16px 24px;
 }
 .stat-item { text-align: center; min-width: 80px; }
 .stat-num { display: block; font-family: var(--font-heading); font-size: 24px; font-weight: 600; color: #1E3A8A; }
@@ -316,5 +321,5 @@ onUnmounted(() => {
 .node-detail-body { display: flex; flex-direction: column; gap: 8px; }
 .nd-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
 .nd-label { color: #64748B; }
-.nd-value { color: #1E3A8A; font-weight: 500; word-break: break-all; text-align: right; max-width: 160px; }
+.nd-value { color: #1E3A8A; font-weight: 500; word-break: break-all; text-align: right; }
 </style>

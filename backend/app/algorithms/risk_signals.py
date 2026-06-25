@@ -159,7 +159,7 @@ class RiskSignalDetector:
                 signal_type="negative_emotion",
                 comment_id=comment_id,
                 evidence_text=text[:80],
-                score=min(0.9, 0.5 + len(neg_matches) * 0.1),
+                score=min(0.95, 0.6 + len(neg_matches) * 0.08),
                 reason=f"包含负面情绪词: {', '.join(neg_matches[:3])}",
                 source=source,
             ))
@@ -210,7 +210,7 @@ class RiskSignalDetector:
                 signal_type="rumor_spread",
                 comment_id=comment_id,
                 evidence_text=text[:80],
-                score=min(0.85, 0.5 + len(rumor_matches) * 0.1),
+                score=min(0.9, 0.6 + len(rumor_matches) * 0.08),
                 reason=f"包含传闻扩散表达: {', '.join(rumor_matches[:3])}",
                 source=source,
             ))
@@ -228,7 +228,7 @@ class RiskSignalDetector:
                 score = 0.8
                 reason = "包含行动号召且有时间或地点信息"
             else:
-                score = 0.7
+                score = 0.75
                 reason = f"包含行动号召表达: {', '.join(mob_matches[:3])}"
 
             signals.append(RiskSignal(
@@ -247,7 +247,7 @@ class RiskSignalDetector:
                 signal_type="confrontation",
                 comment_id=comment_id,
                 evidence_text=text[:80],
-                score=min(0.85, 0.5 + len(conf_matches) * 0.1),
+                score=min(0.9, 0.6 + len(conf_matches) * 0.08),
                 reason=f"包含对抗倾向: {', '.join(conf_matches[:3])}",
                 source=source,
             ))
@@ -300,7 +300,7 @@ class RiskSignalDetector:
                 if cid:
                     resonance_comment_ids.append(cid)
 
-        threshold = max(3, len(comments) * 0.3)
+        threshold = max(2, len(comments) * 0.2)
         if resonance_count >= threshold:
             signals.append(RiskSignal(
                 signal_type="collective_resonance",

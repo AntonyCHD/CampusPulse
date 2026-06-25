@@ -151,6 +151,7 @@ onMounted(() => { checkBackendStatus() })
 
     <!-- LLM Config Tab -->
     <div v-if="activeTab === 'llm'" class="tab-content">
+      <!-- content unchanged -->
       <div class="status-banner" :class="llmConnected ? 'banner-ok' : 'banner-warn'">
         <div class="banner-left">
           <CircleCheck v-if="llmConnected" class="banner-icon" style="color:#10b981" />
@@ -237,17 +238,32 @@ onMounted(() => { checkBackendStatus() })
                 <Promotion style="margin-right:6px" /> 发送
               </el-button>
               <el-checkbox v-model="playgroundStreaming" label="流式输出" size="small" />
-              <span v-if="playgroundLatency > 0" class="latency-badge">{{ playgroundLatency }}ms</span>
-              <span v-if="playgroundUsage" class="latency-badge">{{ playgroundUsage.total_tokens }} tokens</span>
+              <span v-if="playgroundLatency > 0 && !playgroundLoading" class="latency-badge">{{ playgroundLatency }}ms</span>
+              <span v-if="playgroundUsage && !playgroundLoading" class="latency-badge">{{ playgroundUsage.total_tokens }} tokens</span>
             </div>
           </div>
         </div>
 
-        <div class="config-card config-card-wide" v-if="playgroundResponse">
+        <!-- Response skeleton / content -->
+        <div class="config-card config-card-wide">
           <div class="config-card-header">响应</div>
           <div class="config-card-body">
-            <div class="response-box" :class="{ streaming: playgroundStreaming && playgroundLoading }">{{ playgroundResponse }}</div>
-            <div v-if="playgroundUsage" class="usage-detail">
+            <!-- Loading skeleton -->
+            <div v-if="playgroundLoading && !playgroundStreaming" class="sk-response">
+              <div class="sk-shimmer sk-res-line" v-for="i in 5" :key="i" :style="{ width: (90 - i * 12) + '%', animationDelay: i * 40 + 'ms' }"></div>
+            </div>
+            <!-- Streaming: show partial response -->
+            <div v-else-if="playgroundLoading && playgroundStreaming" class="response-box streaming">
+              {{ playgroundResponse || '等待响应...' }}
+            </div>
+            <!-- Completed response -->
+            <div v-else-if="playgroundResponse" class="response-box">{{ playgroundResponse }}</div>
+            <!-- Idle -->
+            <div v-else class="sk-response-idle">
+              <ChatDotRound style="width:40px;height:40px;color:#cbd5e1;margin-bottom:8px" />
+              <span>点击发送测试大模型连接</span>
+            </div>
+            <div v-if="playgroundUsage && !playgroundLoading" class="usage-detail">
               <span>Prompt: {{ playgroundUsage.prompt_tokens }}</span>
               <span>Completion: {{ playgroundUsage.completion_tokens }}</span>
               <span>Total: {{ playgroundUsage.total_tokens }}</span>
@@ -412,7 +428,7 @@ onMounted(() => { checkBackendStatus() })
 </template>
 
 <style scoped>
-.settings-page { max-width:1200px; margin:0 auto; padding:16px 20px; }
+.settings-page { padding: 16px 24px; }
 .page-header { margin-bottom:24px; }
 .page-header h1 { font-family:var(--font-heading,'Fira Code',monospace); font-size:24px; font-weight:600; color:#1E3A8A; margin:0 0 6px 0; }
 .subtitle { font-size:14px; color:#64748B; margin:0; }
@@ -431,7 +447,7 @@ onMounted(() => { checkBackendStatus() })
 .banner-left { display:flex; align-items:center; gap:10px; font-size:14px; color:#475569; flex:1; }
 .banner-icon { width:20px; height:20px; flex-shrink:0; }
 
-.error-card { background:#fef2f2; border:1px solid #fecaca; border-radius:10px; padding:16px 20px; margin-bottom:20px; }
+.error-card { background:#fef2f2; border:1px solid #fecaca; border-radius:10px; padding: 16px 24px; margin-bottom:20px; }
 .error-title { font-size:14px; font-weight:600; color:#DC2626; margin-bottom:6px; }
 .error-body { font-size:13px; color:#475569; font-family:var(--font-heading); word-break:break-all; margin-bottom:8px; }
 .error-hint { font-size:12px; color:#94a3b8; }
@@ -440,7 +456,7 @@ onMounted(() => { checkBackendStatus() })
 .config-card { background:white; border:1px solid #DBEAFE; border-radius:10px; overflow:hidden; }
 .config-card-wide { grid-column:1/-1; }
 .config-card-header { font-family:var(--font-heading); font-size:13px; font-weight:600; color:#1E3A8A; padding:14px 20px; border-bottom:1px solid #f1f5f9; }
-.config-card-body { padding:16px 20px; }
+.config-card-body { padding: 16px 24px; }
 
 .form-group { margin-bottom:16px; }
 .form-group:last-child { margin-bottom:0; }
@@ -451,6 +467,31 @@ onMounted(() => { checkBackendStatus() })
 
 .response-box { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:16px; font-size:14px; color:#1e293b; line-height:1.7; white-space:pre-wrap; min-height:80px; max-height:400px; overflow-y:auto; }
 .response-box.streaming { border-color:#3B82F6; }
+
+/* ---- Playground skeleton ---- */
+.sk-shimmer {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 6px;
+}
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.sk-response { min-height: 80px; display: flex; flex-direction: column; gap: 10px; padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; }
+.sk-res-line { height: 14px; animation: sk-fade-in 0.25s ease-out both; border-radius: 4px; }
+.sk-response-idle { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80px; color: #94a3b8; font-size: 13px; }
+
+@keyframes sk-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk-shimmer { animation: none; background: #e2e8f0; }
+  .sk-res-line { animation: none; opacity: 1; transform: none; }
+}
 
 .usage-detail { display:flex; gap:16px; margin-top:8px; font-size:11px; color:#94a3b8; font-family:var(--font-heading); }
 

@@ -3,6 +3,7 @@
 用于加速前端加载
 """
 
+import asyncio
 import sys
 from pathlib import Path
 
@@ -14,7 +15,7 @@ from backend.app.services.analysis_service import get_analysis_service
 from backend.app.storage.event_store import get_event_store
 
 
-def precompute_all():
+async def precompute_all_async():
     """预计算所有事件的分析结果"""
     print("开始预计算所有事件的分析结果...")
 
@@ -38,7 +39,7 @@ def precompute_all():
                 continue
 
             # 执行分析（会自动缓存）
-            result = service.analyze_event(event, mode="realtime")
+            result = await service.analyze_event(event, mode="realtime")
             print(f"  完成: {result['risk_level']} (分数: {result['risk_score']:.2f})")
 
         except Exception as e:
@@ -49,4 +50,4 @@ def precompute_all():
 
 
 if __name__ == "__main__":
-    precompute_all()
+    asyncio.run(precompute_all_async())
