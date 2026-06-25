@@ -1,134 +1,197 @@
-# 群声雷达 - Campus Opinion Radar
+# 校园舆情监测系统 - Campus Opinion Monitoring System
 
-面向校园墙场景的舆情风险演化与证据化处置平台
+基于评论链演化分析的校园舆情智能监测系统 MVP
 
-## 项目简介
+## 🎯 项目简介
 
-群声雷达是一套基于授权校园墙数据的轻量化舆情风险演化分析平台，融合评论链建模、情绪共振识别、事实核验 RAG 与大模型辅助研判，帮助高校从"被动看见负面帖子"升级为"提前理解事件如何发酵并给出有证据的温和处置建议"。
+本系统采用**评论链演化分析法**，结合语义理解、结构分析和传播追踪三重维度，对校园墙事件进行风险评估和预警。相比传统的关键词法和情感分析法，能够更准确地识别集体共鸣、动员行为和传播节点。
 
-## 核心功能
+### 核心特性
 
-- **事件总览**: 查看所有校园墙事件，按风险等级筛选
-- **单事件分析**: 深度分析单个事件的风险演化路径
-- **对比实验**: 对比不同方法的风险识别效果
-- **证据化处置**: 基于证据生成处置建议
-- **报告导出**: 导出分析报告（Markdown/PDF）
+- 🧠 **语义理解**: BGE-M3多语言模型，1024维向量空间
+- 🕸️ **图结构分析**: 三种边类型（回复、时间、语义）
+- 📊 **多维度评分**: 六因素加权（主贴、共鸣、动员、影响力、爆发、不确定性）
+- 🎨 **优雅界面**: Vue 3 + Element Plus现代UI
+- ⚡ **高性能**: 多层缓存，秒级响应
 
-## 技术架构
+## 🚀 快速开始
 
-- **前端**: Streamlit
-- **后端**: FastAPI + Python 3.11+
-- **语义表示**: BGE-M3 中文向量模型
-- **图分析**: NetworkX 评论链建模
-- **大模型**: OpenAI-compatible API
-- **存储**: SQLite + FAISS/Chroma
+### 方式1: 一键启动（推荐）
 
-## 快速开始
+**Windows系统**: 双击运行 `start.bat` 即可自动启动前后端服务  
+**Linux/macOS系统**: 运行 `bash start.sh`
 
-### 1. 环境要求
-
-- Python 3.11+
-- 8GB+ RAM（运行 embedding 模型）
-- 可选：CUDA（加速向量计算）
-
-### 2. 本地开发模式
+### 方式2: 手动启动
 
 ```bash
-# 创建虚拟环境
-python -m venv .venv
-
-# 激活环境（Windows）
-.venv\Scripts\activate
-
-# 激活环境（macOS/Linux）
-source .venv/bin/activate
-
-# 安装依赖
-pip install -r requirements.txt
-
-# 配置环境变量
-cp .env.example .env
-# 编辑 .env 文件，填入 API Key 等配置
-
 # 启动后端
-uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
 
-# 启动前端（新终端）
-streamlit run frontend/streamlit_app.py
+# 启动前端（新开终端）
+cd frontend-vue
+npm run dev
+
+# 访问系统
+浏览器打开 http://localhost:5173
 ```
 
-访问地址：
-- 前端：http://localhost:8501
-- 后端 API：http://localhost:8000
-- API 文档：http://localhost:8000/docs
+详细文档请查看 [启动指南](docs/STARTUP_GUIDE.md)
 
-### 3. Docker Compose 部署
+## 📊 系统数据
 
-```bash
-# 构建并启动
-docker compose up --build
+- **事件数量**: 39个真实校园墙事件
+- **评论数量**: 2363条用户评论
+- **数据来源**: 匿名化处理的真实数据
 
-# 后台运行
-docker compose up -d
+## 🎨 功能展示
 
-# 停止服务
-docker compose down
+### 1. 事件总览
+- 网格卡片布局，风险等级徽章
+- 支持风险等级和类型筛选
+- 悬停交互效果
+
+### 2. 单事件分析
+- 四大风险指标可视化
+- 演化路径步骤图
+- 风险信号详细列表（自动去重）
+- 关键评论识别
+
+### 3. 评论网络图谱
+- 交互式可视化（vis-network）
+- 拖拽、缩放、悬停
+- 边类型动态切换
+
+### 4. 方法对比实验
+- 三种方法并排对比
+- 优劣势分析
+
+### 5. 报告导出
+- 完整分析报告
+- Markdown格式导出
+
+## 🔧 技术栈
+
+### 后端
+- FastAPI 0.115.0 - 高性能API框架
+- BGE-M3 - 多语言语义向量模型
+- NetworkX - 图算法库
+- Python 3.9+
+
+### 前端
+- Vue 3.5 - 渐进式框架
+- TypeScript - 类型安全
+- Element Plus - 企业级UI组件
+- vis-network - 网络图可视化
+- Vite 8.1.0 - 现代构建工具
+
+## 📁 项目结构
+
 ```
-
-## 项目结构
-
-```
-campus-opinion-radar/
 ├── backend/              # 后端服务
 │   ├── app/
-│   │   ├── api/         # API 路由
-│   │   ├── schemas/     # 数据模型
-│   │   ├── services/    # 业务逻辑
-│   │   ├── algorithms/  # 核心算法
-│   │   ├── llm/         # 大模型调用
+│   │   ├── algorithms/   # 核心算法
+│   │   ├── api/         # API路由
+│   │   ├── services/    # 业务服务
 │   │   └── storage/     # 数据存储
-│   └── tests/           # 单元测试
-├── frontend/            # 前端应用
-│   ├── pages/          # 页面
-│   └── components/     # 组件
-├── data/               # 数据目录
-│   ├── raw/           # 原始数据（不提交）
-│   ├── processed/     # 处理后数据
-│   ├── labels/        # 人工标注
-│   └── demo_cases/    # 演示案例
-├── cache/             # 缓存目录
-├── outputs/           # 输出目录
-├── docs/              # 文档
-└── scripts/           # 脚本工具
+│   └── tests/           # 测试代码
+├── frontend-vue/        # Vue前端
+│   ├── src/
+│   │   ├── api/        # API客户端
+│   │   ├── views/      # 页面组件
+│   │   └── router/     # 路由配置
+├── data/                # 数据目录
+│   ├── raw/            # 原始数据
+│   └── processed/      # 处理后数据
+├── cache/              # 缓存目录
+│   ├── embeddings/     # 语义向量缓存
+│   └── demo_reports/   # 分析结果缓存
+├── scripts/            # 工具脚本
+│   ├── ingest_data.py         # 数据导入
+│   ├── precompute_analysis.py # 预计算分析
+│   └── test_api.py            # API测试
+├── docs/               # 文档
+└── start.bat          # 一键启动脚本
 ```
 
-## 开发规范
+## 🎯 核心算法
 
-详见 [docs/开发规范与部署.md](docs/开发规范与部署.md)
+### 评论链图谱构建
 
-## MVP 开发路线
+三种边类型构建多层网络：
+- **回复边**: 基于parent_id的直接回复关系
+- **时间边**: 30分钟内连续评论
+- **语义边**: 余弦相似度≥0.80的语义关联
 
-详见 [docs/MVP开发文档.md](docs/MVP开发文档.md)
+### 风险评分模型
 
-## 实验与论文
+六因素加权评分：
+```
+总分 = 0.20×主贴风险 + 0.25×集体共鸣 + 0.20×动员性
+       + 0.15×图谱影响力 + 0.10×爆发性 + 0.10×不确定性
+```
 
-详见 [docs/实验与论文设计.md](docs/实验与论文设计.md)
+风险等级划分：
+- **低风险**: [0, 40)
+- **中风险**: [40, 65)
+- **高风险**: [65, 85)
+- **严重风险**: [85, 100]
 
-## 答辩与展示
+### 关键评论识别
 
-详见 [docs/答辩展示与交付清单.md](docs/答辩展示与交付清单.md)
+基于PageRank算法识别图谱中的关键传播节点
 
-## 隐私与安全
+## 📝 API文档
 
-- 所有数据必须经过脱敏处理
-- 不上传原始个人信息到 Git
-- 演示模式优先使用缓存数据
-- 详见 [docs/开发规范与部署.md](docs/开发规范与部署.md) 隐私规范章节
+主要接口：
+- `GET /api/events/` - 获取事件列表（带风险等级）
+- `POST /api/analyze/{event_id}` - 分析单个事件（自动缓存）
+- `GET /api/graph/{event_id}` - 获取评论图谱数据
+- `POST /api/baseline/{event_id}` - 基线方法对比
+- `GET /api/report/{event_id}` - 生成分析报告
 
-## License
+## 🔍 系统特点
 
-待定
+### 相比传统方法的优势
 
-## 团队
+| 维度 | 关键词法 | 情感分析法 | 评论链演化法 |
+|------|---------|-----------|-------------|
+| 语义理解 | ❌ | ⚠️ | ✅ |
+| 传播结构 | ❌ | ❌ | ✅ |
+| 集体行为 | ❌ | ❌ | ✅ |
+| 动员识别 | ❌ | ❌ | ✅ |
+| 关键节点 | ❌ | ❌ | ✅ |
 
-Campus Opinion Radar Team
+## ⚡ 性能优化
+
+- **多层缓存**: 语义向量缓存 + 分析结果缓存
+- **预计算脚本**: 一次性计算所有事件
+- **智能去重**: 同一评论多标签自动合并
+- **响应速度**: 缓存命中 <100ms，首次分析 10-30s
+
+## 📖 文档
+
+- [快速启动](README_STARTUP.md) - 一键启动指南
+- [启动指南](docs/STARTUP_GUIDE.md) - 详细启动和使用说明
+- [MVP完成总结](docs/MVP_COMPLETE_SUMMARY.md) - 项目完成情况
+- [详细设计文档](docs/详细设计.md) - 系统架构和算法设计
+- [实验与论文设计](docs/实验与论文设计.md) - 研究方法和实验方案
+
+## 🐛 常见问题
+
+**Q: 首次启动很慢？**  
+A: 首次需要下载BGE-M3模型（~2GB），之后会自动缓存
+
+**Q: 如何预计算所有事件？**  
+A: 运行 `python scripts/precompute_analysis.py` 预计算所有事件分析结果
+
+**Q: 前端无法连接后端？**  
+A: 确保后端已启动在8000端口，前端代理配置在 `frontend-vue/vite.config.ts`
+
+**Q: 端口被占用怎么办？**  
+A: 参考 [快速启动指南](README_STARTUP.md) 中的"停止服务"章节
+
+---
+
+**版本**: MVP v1.0  
+**状态**: ✅ 可演示使用  
+**最后更新**: 2026年6月25日

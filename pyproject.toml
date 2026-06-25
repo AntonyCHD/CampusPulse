@@ -9,7 +9,6 @@ requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.32.0",
-    "streamlit>=1.40.0",
     "pydantic>=2.10.0",
     "sentence-transformers>=3.3.0",
     "networkx>=3.4.0",
