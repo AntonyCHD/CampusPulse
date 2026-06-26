@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, onMounted, watch, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { api, type Event, type Report } from '../api/client'
-import { Setting, Warning, CircleCheck, Clock, List, OfficeBuilding, ChatLineRound, Select } from '@element-plus/icons-vue'
+import { Setting, Warning, CircleCheck, Clock, List, OfficeBuilding, ChatLineRound, Select, Search } from '@element-plus/icons-vue'
 import SkeletonPresets from '../components/SkeletonPresets.vue'
 
 const route = useRoute()
+const router = useRouter()
 const eventId = ref((route.params.id as string) || '')
+// Sync eventId when route params change (handles component reuse)
+watch(() => route.params.id, (newId) => { if (newId && newId !== eventId.value) { eventId.value = newId as string } })
 const report = ref<Report | null>(null)
 const events = ref<Event[]>([])
 const loading = ref(false)
@@ -40,6 +43,7 @@ const loadReport = async () => {
 
 const selectEvent = (id: string) => {
   eventId.value = id
+  router.push('/intervention/' + id)
 }
 
 watch(eventId, (newId) => {
@@ -66,6 +70,47 @@ const getUrgencyColor = (urgency: string) => {
 }
 
 const stages = ['监测发现', '初步研判', '证据核查', '响应处置', '效果评估', '归档总结']
+
+// ---- Event List filtering ----
+const searchEventsQuery = ref('')
+const riskFilterEvents = ref('')
+const typeFilterEvents = ref('')
+
+const getRiskColor = (level: string) => {
+  if (!level) return '#94a3b8'
+  if (level === '严重') return '#ef4444'
+  if (level === '高') return '#f97316'
+  if (level === '中') return '#f59e0b'
+  return '#10b981'
+}
+
+const filteredEvents = computed(() => {
+  let list = events.value
+  if (searchEventsQuery.value) {
+    const q = searchEventsQuery.value.toLowerCase()
+    list = list.filter(e => e.event_id.toLowerCase().includes(q) || (e.title || '').toLowerCase().includes(q))
+  }
+  if (riskFilterEvents.value) list = list.filter(e => e.risk_level === riskFilterEvents.value)
+  if (typeFilterEvents.value) list = list.filter(e => e.event_type === typeFilterEvents.value)
+  return list
+})
+
+// ---- Analysis workflow ----
+const analysisStep = ref(0)
+const analysisSteps = ['检索知识库', 'LLM研判', '生成处置方案', '完成']
+const configRagTopK = ref(5)
+const configUseLLM = ref(true)
+
+const startAnalysis = async () => {
+  analysisStep.value = 1
+  await new Promise(r => setTimeout(r, 700))
+  analysisStep.value = 2
+  await new Promise(r => setTimeout(r, 1000))
+  analysisStep.value = 3
+  await new Promise(r => setTimeout(r, 1500))
+  analysisStep.value = 4
+  await loadReport()
+}
 </script>
 
 <template>
@@ -75,33 +120,85 @@ const stages = ['监测发现', '初步研判', '证据核查', '响应处置', 
       <p class="subtitle">基于知识库检索与结构化研判，生成可执行的温和处置方案</p>
     </div>
 
-    <!-- Event Selector -->
+    <!-- Event List Table (when no event selected) -->
     <div class="selector-bar" v-if="!eventId">
       <div class="selector-hint">
         <Select class="selector-icon" />
-        <span>选择一个事件以查看处置方案</span>
+        <span>选择一个事件查看处置方案</span>
       </div>
-      <div class="event-chips" v-loading="loadingEvents">
-        <button
-          v-for="event in events.slice(0, 8)"
+      <div class="el-search-bar">
+        <el-input v-model="searchEventsQuery" placeholder="搜索事件ID或标题" :prefix-icon="Search" clearable class="el-search-input" />
+        <el-select v-model="riskFilterEvents" placeholder="风险等级" clearable class="el-filter-select">
+          <el-option label="低风险" value="低" /><el-option label="中风险" value="中" />
+          <el-option label="高风险" value="高" /><el-option label="严重" value="严重" />
+        </el-select>
+        <el-select v-model="typeFilterEvents" placeholder="事件类别" clearable class="el-filter-select">
+          <el-option v-for="t in [...new Set(events.map(e=>e.event_type))]" :key="t" :label="t" :value="t" />
+        </el-select>
+      </div>
+      <div class="event-table-wrap" v-loading="loadingEvents">
+        <div
+          v-for="event in filteredEvents"
           :key="event.event_id"
-          class="event-chip"
+          class="event-row"
           @click="selectEvent(event.event_id)"
         >
-          <span class="chip-id">{{ event.event_id }}</span>
-          <span class="chip-title">{{ event.title }}</span>
-        </button>
+          <span class="risk-dot" :style="{ background: getRiskColor(event.risk_level) }"></span>
+          <div class="event-row-main">
+            <div class="event-row-head">
+              <span class="event-id-tag">{{ event.event_id }}</span>
+              <span class="event-risk-text" :style="{ color: getRiskColor(event.risk_level) }">{{ event.risk_level }}</span>
+              <span class="event-type-tag">{{ event.event_type }}</span>
+            </div>
+            <div class="event-row-title">{{ event.title }}</div>
+            <div class="event-row-meta">
+              <span>{{ event.comment_count }} 评论</span>
+              <span>{{ event.like_count }} 赞</span>
+              <span>{{ event.created_at?.slice(0,10) }}</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Skeleton Loading -->
-    <template v-if="eventId && loading">
-      <SkeletonPresets section="intervention" />
-    </template>
+    <!-- Config Panel (event selected, before analysis) -->
+    <div class="config-panel" v-if="eventId && analysisStep === 0 && !loading">
+      <div class="config-event-bar">
+        <span class="config-event-id">{{ eventId }}</span>
+        <span class="config-event-title">{{ events.find(e=>e.event_id===eventId)?.title || '' }}</span>
+      </div>
+      <div class="config-options">
+        <div class="config-option">
+          <span class="config-option-label">RAG 检索数量</span>
+          <el-slider v-model="configRagTopK" :min="3" :max="10" show-input size="small" style="width:200px" />
+        </div>
+        <div class="config-option">
+          <span class="config-option-label">LLM 增强研判</span>
+          <el-switch v-model="configUseLLM" active-text="启用" inactive-text="禁用" />
+        </div>
+      </div>
+      <el-button type="primary" size="large" @click="startAnalysis" :loading="loading" style="margin-top:16px">
+        开始分析并生成处置方案
+      </el-button>
+    </div>
 
-    <!-- Empty state -->
-    <div v-else-if="eventId && !loading && !report" class="empty-state">
-      <el-empty description="该事件暂无处置报告，请先在事件分析页完成分析" :image-size="100" />
+    <!-- Analysis Progress -->
+    <div class="progress-panel" v-if="eventId && analysisStep > 0 && analysisStep < 4">
+      <div class="progress-steps">
+        <div v-for="(step, i) in analysisSteps" :key="i" class="progress-step" :class="{ done: i < analysisStep, current: i === analysisStep }">
+          <div class="progress-circle">{{ i < analysisStep ? '✓' : i + 1 }}</div>
+          <span class="progress-label">{{ step }}</span>
+          <div v-if="i < 3" class="progress-line" :class="{ done: i < analysisStep }"></div>
+        </div>
+      </div>
+      <SkeletonPresets section="intervention" />
+    </div>
+
+    <!-- Error state -->
+    <div v-if="eventId && !loading && analysisStep === 4 && !report" class="empty-state">
+      <el-empty description="分析失败，请重试" :image-size="80">
+        <el-button type="primary" @click="startAnalysis">重试</el-button>
+      </el-empty>
     </div>
 
     <!-- Real Content -->
@@ -312,9 +409,24 @@ const stages = ['监测发现', '初步研判', '证据核查', '响应处置', 
 .page-header { margin-bottom: 24px; }
 .page-header h1 { font-family: var(--font-heading, 'Fira Code', monospace); font-size: 24px; font-weight: 600; color: #1E3A8A; margin: 0 0 6px 0; }
 .subtitle { font-size: 14px; color: #64748B; margin: 0; }
-.selector-bar { background: white; border: 2px dashed #DBEAFE; border-radius: 10px; padding: 32px; text-align: center; }
+.selector-bar { background: white; border: 2px dashed #DBEAFE; border-radius: 10px; padding: 24px; text-align: center; }
 .selector-hint { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 20px; color: #64748B; font-size: 15px; }
 .selector-icon { width: 20px; height: 20px; color: #3B82F6; }
+/* Event List Table */
+.el-search-bar { display: flex; gap: 12px; padding: 12px 0; }
+.el-search-input { flex: 1; min-width: 200px; }
+.el-filter-select { width: 140px; flex-shrink: 0; }
+.event-table-wrap { max-height: 500px; overflow-y: auto; }
+.event-table-wrap .event-row { display: flex; align-items: flex-start; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #f8fafc; cursor: pointer; transition: background 0.15s; }
+.event-table-wrap .event-row:hover { background: #f8fafc; }
+.event-table-wrap .risk-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+.event-table-wrap .event-row-main { flex: 1; min-width: 0; }
+.event-table-wrap .event-row-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.event-table-wrap .event-id-tag { font-family: var(--font-heading); font-size: 11px; font-weight: 600; color: #3B82F6; background: #eff6ff; padding: 1px 6px; border-radius: 3px; }
+.event-table-wrap .event-risk-text { font-size: 12px; font-weight: 600; }
+.event-table-wrap .event-type-tag { font-size: 11px; color: #64748B; background: #f1f5f9; padding: 1px 8px; border-radius: 4px; }
+.event-table-wrap .event-row-title { font-size: 14px; color: #1e293b; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.event-table-wrap .event-row-meta { display: flex; gap: 16px; font-size: 12px; color: #94a3b8; }
 .event-chips { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
 .event-chip { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border: 1px solid #DBEAFE; border-radius: 8px; background: white; cursor: pointer; font-size: 13px; font-family: var(--font-body); transition: all 0.15s; }
 .event-chip:hover { border-color: #3B82F6; background: #eff6ff; }
@@ -373,4 +485,23 @@ const stages = ['监测发现', '初步研判', '证据核查', '响应处置', 
 .dept-tag { font-size: 12px; }
 .urgency-badge { font-size: 14px; font-weight: 600; padding: 4px 14px; border: 1px solid; border-radius: 8px; }
 .empty-state { padding: 24px 0; }
+.empty-state-box { background: white; border: 2px dashed #DBEAFE; border-radius: 12px; padding: 48px 24px; text-align: center; }
+.empty-state-icon { margin-bottom: 16px; }
+.empty-state-title { font-size: 18px; font-weight: 600; color: #1E3A8A; margin: 0 0 8px 0; }
+.empty-state-desc { font-size: 14px; color: #64748B; margin: 0 0 8px 0; }
+
+@media (max-width: 1280px) {
+  .intervention-page { padding: 14px 16px; }
+  .intervention-grid { grid-template-columns: 1fr; }
+  .risk-summary-grid { grid-template-columns: repeat(2, 1fr); }
+  .summary-cards { grid-template-columns: 1fr 1fr; }
+  .workflow-stages { flex-wrap: wrap; }
+}
+@media (max-width: 1080px) {
+  .intervention-page { padding: 12px 14px; }
+  .risk-summary-grid { grid-template-columns: 1fr 1fr; }
+  .summary-cards { grid-template-columns: 1fr; }
+  .workflow-stages { flex-wrap: wrap; gap: 8px; }
+  .stage-label { font-size: 10px; }
+}
 </style>

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, nextTick } from 'vue'
 import { Setting, Cpu, DataAnalysis, Delete, CircleCheck, CircleClose, Refresh, Connection, Promotion, ChatDotRound } from '@element-plus/icons-vue'
-import { getLLMConfig, testLLMConnection, chatCompletion, streamChatCompletion, type LLMTestResult } from '../api/llmService'
+import { type ChatMessage, type ChatCompletionResponse } from '../api/llmService'
+import { testLLMBackend, getLLMBackendStatus, chatBackend, getRagStatus, getCacheStats, type LLMTestResult } from '../api/backendService'
 
 const activeTab = ref('llm')
 
@@ -31,6 +32,7 @@ const analysisParams = reactive({
 })
 
 const playgroundPrompt = ref('你是一个校园舆情分析师。请用一句话介绍你的分析能力。')
+const playgroundStream = ref(false)
 const playgroundResponse = ref('')
 const playgroundStreaming = ref(false)
 const playgroundLoading = ref(false)
@@ -59,14 +61,9 @@ const runPlayground = async () => {
   playgroundLoading.value = true; playgroundResponse.value = ''; playgroundUsage.value = null
   const start = performance.now()
   try {
-    if (playgroundStreaming.value) {
-      const stream = streamChatCompletion([{ role: 'user', content: playgroundPrompt.value }])
-      for await (const chunk of stream) { playgroundResponse.value += chunk; await nextTick() }
-    } else {
-      const resp = await chatCompletion([{ role: 'user', content: playgroundPrompt.value }])
-      playgroundResponse.value = resp.choices?.[0]?.message?.content || '(empty)'
-      playgroundUsage.value = resp.usage || null
-    }
+    const resp = await chatBackend([{ role: 'user', content: playgroundPrompt.value }])
+    playgroundResponse.value = resp.choices?.[0]?.message?.content || '(empty)'
+    playgroundUsage.value = resp.usage || null
     playgroundLatency.value = Math.round(performance.now() - start)
   } catch (err: any) {
     playgroundResponse.value = 'Error: ' + (err.message || String(err))
@@ -92,10 +89,34 @@ const clearCache = (cacheType: string) => {
   }
 }
 
-const checkBackendStatus = async () => {
+const backendChecked = ref(false)
+const llmChecked = ref(false)
+
+const checkBackendStatus = async (force = false) => {
+  if (!force && backendChecked.value) return
   backendStatus.value = 'checking'
-  try { const resp = await fetch('/api/events/'); backendStatus.value = resp.ok ? 'online' : 'offline' }
+  try { const resp = await fetch('/api/events/'); backendStatus.value = resp.ok ? 'online' : 'offline'; backendChecked.value = true }
   catch { backendStatus.value = 'offline' }
+}
+
+const checkLLMBackendStatus = async (force = false) => {
+  if (!force && llmChecked.value) return
+  llmTesting.value = true
+  try {
+    const result = await testLLMBackend()
+    llmTestResult.value = result
+    llmConnected.value = result.success
+    llmChecked.value = true
+    // Sync model from backend to config display
+    if (result.success && result.model) {
+      llmConfig.model = result.model
+      localStorage.setItem('llm_model', result.model)
+    }
+  } catch {
+    llmConnected.value = false
+  } finally {
+    llmTesting.value = false
+  }
 }
 
 const providers = [
@@ -132,7 +153,7 @@ const tabs = [
   { key: 'system', label: '系统状态', icon: Setting },
 ]
 
-onMounted(() => { checkBackendStatus() })
+onMounted(() => { checkBackendStatus(); checkLLMBackendStatus() })
 </script>
 
 <template>
@@ -161,7 +182,7 @@ onMounted(() => { checkBackendStatus() })
           </span>
           <span v-else>LLM API 未连接 — 当前使用规则兜底+缓存模式</span>
         </div>
-        <el-button size="small" :loading="llmTesting" @click="doTestConnection">
+        <el-button size="small" :loading="llmTesting" @click="() => checkLLMBackendStatus(true)">
           <Connection style="margin-right:4px" /> 测试连接
         </el-button>
       </div>
@@ -415,10 +436,10 @@ onMounted(() => { checkBackendStatus() })
             <div class="tech-stack">
               <div class="tech-item"><span class="tech-label">前端</span><span class="tech-val">Vue 3 + TypeScript + Element Plus + ECharts + vis-network</span></div>
               <div class="tech-item"><span class="tech-label">后端</span><span class="tech-val">FastAPI + Pydantic</span></div>
-              <div class="tech-item"><span class="tech-label">存储</span><span class="tech-val">SQLite / DuckDB + FAISS / Chroma</span></div>
-              <div class="tech-item"><span class="tech-label">语义</span><span class="tech-val">BGE-M3 / bge-large-zh-v1.5 / gte-Qwen2</span></div>
+              <div class="tech-item"><span class="tech-label">存储</span><span class="tech-val">SQLite / DuckDB + Milvus (Docker)</span></div>
+              <div class="tech-item"><span class="tech-label">语义</span><span class="tech-val">BAAI/bge-m3 (1024维)</span></div>
               <div class="tech-item"><span class="tech-label">图谱</span><span class="tech-val">NetworkX</span></div>
-              <div class="tech-item"><span class="tech-label">LLM</span><span class="tech-val">OpenAI-compatible SDK ({{ llmConfig.provider }} / {{ llmConfig.model }})</span></div>
+              <div class="tech-item"><span class="tech-label">LLM</span><span class="tech-val">OpenAI-compatible ({{ llmTestResult?.model || llmConfig.provider + " / " + llmConfig.model }})</span></div>
             </div>
           </div>
         </div>
@@ -452,9 +473,9 @@ onMounted(() => { checkBackendStatus() })
 .error-body { font-size:13px; color:#475569; font-family:var(--font-heading); word-break:break-all; margin-bottom:8px; }
 .error-hint { font-size:12px; color:#94a3b8; }
 
-.config-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.config-grid { display:grid; grid-template-columns:minmax(0, 640px) minmax(0, 640px); gap:16px; justify-content: start; max-width: 1296px; }
 .config-card { background:white; border:1px solid #DBEAFE; border-radius:10px; overflow:hidden; }
-.config-card-wide { grid-column:1/-1; }
+.config-card-wide { grid-column:1/-1; max-width: 1296px; }
 .config-card-header { font-family:var(--font-heading); font-size:13px; font-weight:600; color:#1E3A8A; padding:14px 20px; border-bottom:1px solid #f1f5f9; }
 .config-card-body { padding: 16px 24px; }
 
@@ -525,4 +546,15 @@ onMounted(() => { checkBackendStatus() })
 .tech-item { display:flex; gap:12px; font-size:13px; }
 .tech-label { font-weight:600; color:#1E3A8A; min-width:48px; }
 .tech-val { color:#64748B; }
+
+@media (max-width: 1280px) {
+  .settings-page { padding: 14px 16px; }
+  .config-grid { grid-template-columns: 1fr; }
+  .signal-grid { grid-template-columns: repeat(2, 1fr); }
+  .cache-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 1080px) {
+  .settings-page { padding: 12px 14px; }
+  .status-banner { align-items: flex-start; gap: 10px; flex-direction: column; }
+}
 </style>

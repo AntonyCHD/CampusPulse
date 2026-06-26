@@ -196,4 +196,15 @@ onMounted(() => { analyze() })
 .kc-index { width:22px; height:22px; border-radius:50%; background:#f59e0b; color:white; font-size:11px; display:flex; align-items:center; justify-content:center; font-weight:600; font-family:var(--font-heading); }
 .kc-id { color:#92400e; font-size:12px; font-family:var(--font-heading); }
 .action-row { display:flex; gap:12px; justify-content:center; padding:20px 0; }
+
+@media (max-width: 1280px) {
+  .analysis-page { padding: 14px 16px; }
+  .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+  .analysis-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 1080px) {
+  .analysis-page { padding: 12px 14px; }
+  .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+  .header-actions { flex-wrap: wrap; gap: 8px; }
+}
 </style>

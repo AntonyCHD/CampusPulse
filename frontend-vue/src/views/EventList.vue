@@ -25,6 +25,15 @@ let marqueeInterval: ReturnType<typeof setInterval> | null = null
 const marqueeScrollPos = ref(0)
 const MARQUEE_SPEED = 1.2
 
+const loadSummary = async () => {
+  try {
+    const resp = await api.getEvents({})
+    summary.value = resp.data.summary
+  } catch (error) {
+    console.error("Failed to load summary:", error)
+  }
+}
+
 const loadEvents = async () => {
   loading.value = true
   try {
@@ -33,9 +42,29 @@ const loadEvents = async () => {
       event_type: typeFilter.value || undefined
     })
     events.value = response.data.items
-    summary.value = response.data.summary
   } catch (error) {
     console.error("Failed to load events:", error)
+  } finally {
+    loading.value = false
+    await nextTick()
+    startMarquee()
+  }
+}
+
+const loadAll = async () => {
+  loading.value = true
+  try {
+    const [summaryResp, eventsResp] = await Promise.all([
+      api.getEvents({}),
+      api.getEvents({
+        risk_level: riskFilter.value || undefined,
+        event_type: typeFilter.value || undefined
+      })
+    ])
+    summary.value = summaryResp.data.summary
+    events.value = eventsResp.data.items
+  } catch (error) {
+    console.error("Failed to load:", error)
   } finally {
     loading.value = false
     await nextTick()
@@ -151,7 +180,7 @@ const renderCharts = () => {
 
 const handleResize = () => { riskDistChart?.resize(); typeDistChart?.resize(); trendChart?.resize() }
 
-onMounted(() => { loadEvents(); window.addEventListener("resize", handleResize) })
+onMounted(() => { loadAll(); window.addEventListener("resize", handleResize) })
 onUnmounted(() => {
   window.removeEventListener("resize", handleResize)
   riskDistChart?.dispose(); typeDistChart?.dispose(); trendChart?.dispose()
@@ -206,7 +235,7 @@ onUnmounted(() => {
           <span class="hrs-count">{{ highRiskEvents.length }}</span>
         </div>
         <div class="hrs-items">
-          <div v-for="event in highRiskEvents.slice(0, 6)" :key="event.event_id" class="hrs-item" @click="goToEvent(event.event_id)">
+          <div v-for="event in highRiskEvents" :key="event.event_id" class="hrs-item" @click="goToEvent(event.event_id)">
             <span class="hrs-badge" :style="{ background: getRiskColor(event.risk_level) + '18', color: getRiskColor(event.risk_level) }">{{ event.risk_level }}</span>
             <span class="hrs-title">{{ event.title }}</span>
             <span class="hrs-meta">{{ event.event_type }} · {{ event.comment_count }}评</span>
@@ -310,7 +339,10 @@ onUnmounted(() => {
               <div class="event-row-left">
                 <span class="risk-dot" :style="{ background: getRiskColor(event.risk_level) }" :title="event.risk_level"></span>
                 <div class="event-row-info">
-                  <div class="event-row-title">{{ event.title }}</div>
+                  <div class="event-row-title">
+                    <span class="event-id-tag">{{ event.event_id }}</span>
+                    {{ event.title }}
+                  </div>
                   <div class="event-row-meta">
                     <span class="meta-tag">{{ event.event_type }}</span>
                     <span>{{ event.comment_count }} 评论</span>
@@ -582,5 +614,19 @@ onUnmounted(() => {
 
 .events-section {
   margin-top: 16px;
+}
+
+@media (max-width: 1280px) {
+  .eventlist-page { padding: 14px 16px; }
+  .dashboard-grid { grid-template-columns: 1fr; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .charts-row { grid-template-columns: 1fr; }
+  .bottom-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 1080px) {
+  .eventlist-page { padding: 12px 14px; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .filter-bar { flex-wrap: wrap; }
+  .marquee-card { min-width: 180px; }
 }
 </style>

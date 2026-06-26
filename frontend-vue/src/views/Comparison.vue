@@ -186,4 +186,11 @@ const enabledMethods = computed(() => {
   .sk-shimmer { animation: none; background: #e2e8f0; }
   .sk-result-card { animation: none; opacity: 1; transform: none; }
 }
+
+@media (max-width: 1280px) {
+  .comparison-page { padding: 14px 16px; }
+}
+@media (max-width: 1080px) {
+  .comparison-page { padding: 12px 14px; }
+}
 </style>

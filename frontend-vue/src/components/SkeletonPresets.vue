@@ -224,4 +224,20 @@ defineProps<{ section: string }>()
 .sk-graph-body { height: 420px; border-radius: 10px; }
 .sk-graph-stats { display: flex; gap: 16px; }
 .sk-stat-box { flex: 1; height: 70px; border-radius: 10px; }
+
+@media (max-width: 1280px) {
+  .sk-two-col,
+  .sk-intervention-grid { grid-template-columns: 1fr; }
+  .sk-metrics { gap: 12px; flex-wrap: wrap; }
+  .sk-metric-card { flex: 1 1 220px; }
+}
+
+@media (max-width: 1080px) {
+  .sk-chart-body { height: 220px; }
+  .sk-graph-body { height: 320px; }
+  .sk-graph-stats { flex-wrap: wrap; }
+  .sk-stat-box { flex: 1 1 140px; }
+  .sk-card-right { display: none; }
+}
+
 </style>

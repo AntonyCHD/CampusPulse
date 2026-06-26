@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api import routes_analyze, routes_baseline, routes_events, routes_graph, routes_report, routes_llm
+from .api import routes_analyze, routes_baseline, routes_cache, routes_events, routes_graph, routes_report, routes_llm, routes_rag
 from .config import get_settings
 
 
@@ -48,6 +48,8 @@ app.include_router(routes_graph.router)
 app.include_router(routes_report.router)
 app.include_router(routes_baseline.router)
 app.include_router(routes_llm.router)
+app.include_router(routes_cache.router)
+app.include_router(routes_rag.router)
 
 
 @app.get("/")
@@ -63,4 +65,9 @@ async def root():
 @app.get("/health")
 async def health():
     """Health check endpoint."""
+    return {"status": "healthy"}
+
+@app.get("/api/health")
+async def api_health():
+    """Health check via /api prefix (for Vite proxy)."""
     return {"status": "healthy"}

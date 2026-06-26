@@ -1,34 +1,135 @@
-"""Rule-backed evidence retrieval for demo-mode RAG.
+"""RAG evidence retrieval using BGE-M3 embeddings and Milvus vector store.
 
-The first production version intentionally uses a curated local rule base. It
-keeps the report pipeline evidence-grounded without depending on external vector
-stores or a live knowledge base during the course demo.
+Replaces the earlier hardcoded rule-based retriever with real semantic search.
+When Milvus is unavailable or the collection is empty, falls back gracefully
+to the rule-based approach.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any
 
+import numpy as np
+
 from backend.app.schemas.evidence import Evidence
+from backend.app.services.embedding_service import EmbeddingService
+from backend.app.storage.vector_store import MilvusVectorStore
+from backend.app.utils.logger import get_logger
 
-
-@dataclass(frozen=True)
-class EvidenceRule:
-    evidence_id: str
-    title: str
-    source: str
-    content: str
-    evidence_type: str
-    keywords: tuple[str, ...]
-    priority: float
+logger = get_logger(__name__)
 
 
 class RagService:
-    """Small deterministic evidence retriever for MVP/demo use."""
+    """Semantic evidence retrieval backed by BGE-M3 + Milvus.
+
+    Uses the vector store for primary retrieval and falls back to the
+    legacy rule-based approach when the vector store is empty or unreachable.
+    """
 
     def __init__(self) -> None:
-        self.rules: tuple[EvidenceRule, ...] = (
+        self._vector_store: MilvusVectorStore | None = None
+        self._embedding_service: EmbeddingService | None = None
+        self._connected: bool | None = None  # None = not tried yet
+
+    @property
+    def vector_store(self) -> MilvusVectorStore:
+        if self._vector_store is None:
+            self._vector_store = MilvusVectorStore()
+        return self._vector_store
+
+    @property
+    def embedding_service(self) -> EmbeddingService:
+        if self._embedding_service is None:
+            self._embedding_service = EmbeddingService()
+        return self._embedding_service
+
+    def _ensure_connected(self) -> bool:
+        """Lazily connect to Milvus and cache the result."""
+        if self._connected is None:
+            self._connected = self.vector_store.connect()
+            if self._connected:
+                count = self.vector_store.get_count()
+                logger.info(f"Milvus connected, collection has {count} documents")
+                if count == 0:
+                    logger.warning("Milvus collection is empty; RAG will fall back to rules")
+            else:
+                logger.warning("Milvus not available; RAG will fall back to rules")
+        return self._connected
+
+    def retrieve(
+        self,
+        event: dict[str, Any],
+        top_k: int = 5,
+    ) -> list[Evidence]:
+        """Retrieve evidence for an event.
+
+        Primary: semantic search via BGE-M3 + Milvus.
+        Fallback: rule-based keyword matching.
+        """
+        # Try vector search first
+        if self._ensure_connected() and self.vector_store.get_count() > 0:
+            return self._retrieve_vector(event, top_k)
+
+        # Fall back to rule-based
+        logger.info("Using rule-based fallback for evidence retrieval")
+        return self._retrieve_rules(event, top_k)
+
+    def _retrieve_vector(
+        self,
+        event: dict[str, Any],
+        top_k: int = 5,
+    ) -> list[Evidence]:
+        """Semantic retrieval using BGE-M3 embedding + Milvus search."""
+        query_text = self._build_query_text(event)
+        if not query_text.strip():
+            return []
+
+        # Generate embedding for the query
+        query_embedding = self.embedding_service.encode(query_text, use_cache=True)
+
+        # Search Milvus
+        hits = self.vector_store.search(
+            query_embedding=query_embedding.tolist(),
+            top_k=top_k,
+        )
+
+        evidence_list = []
+        for hit in hits:
+            evidence_list.append(Evidence(
+                evidence_id=hit["evidence_id"],
+                title=hit["title"],
+                source=hit["source"],
+                content=hit["content"][:500],
+                score=hit["score"],
+                evidence_type=hit["evidence_type"],
+            ))
+
+        logger.info(
+            f"Vector retrieval returned {len(evidence_list)} results "
+            f"(top score: {evidence_list[0].score:.3f})"
+            if evidence_list else "Vector retrieval returned 0 results"
+        )
+        return evidence_list
+
+    def _retrieve_rules(
+        self,
+        event: dict[str, Any],
+        top_k: int = 5,
+    ) -> list[Evidence]:
+        """Legacy rule-based retrieval as fallback."""
+        from dataclasses import dataclass
+
+        @dataclass(frozen=True)
+        class EvidenceRule:
+            evidence_id: str
+            title: str
+            source: str
+            content: str
+            evidence_type: str
+            keywords: tuple[str, ...]
+            priority: float
+
+        rules = (
             EvidenceRule(
                 evidence_id="policy_dorm_appeal",
                 title="宿舍管理诉求处理流程",
@@ -76,26 +177,22 @@ class RagService:
             ),
         )
 
-    def retrieve(self, event: dict[str, Any], top_k: int = 5) -> list[Evidence]:
-        """Return ranked evidence snippets for an event."""
         query_text = self._build_query_text(event)
         ranked: list[Evidence] = []
 
-        for rule in self.rules:
-            hit_count = sum(1 for keyword in rule.keywords if keyword in query_text)
+        for rule in rules:
+            hit_count = sum(1 for kw in rule.keywords if kw in query_text)
             type_bonus = 0.08 if event.get("event_type") and event.get("event_type") in rule.content else 0.0
             score = min(1.0, rule.priority * (0.45 + 0.13 * hit_count) + type_bonus)
             if hit_count > 0 or rule.evidence_id == "policy_student_appeal":
-                ranked.append(
-                    Evidence(
-                        evidence_id=rule.evidence_id,
-                        title=rule.title,
-                        source=rule.source,
-                        content=rule.content,
-                        score=round(score, 3),
-                        evidence_type=rule.evidence_type,
-                    )
-                )
+                ranked.append(Evidence(
+                    evidence_id=rule.evidence_id,
+                    title=rule.title,
+                    source=rule.source,
+                    content=rule.content,
+                    score=round(score, 3),
+                    evidence_type=rule.evidence_type,
+                ))
 
         ranked.sort(key=lambda item: item.score, reverse=True)
         return ranked[: max(1, top_k)]
@@ -109,15 +206,30 @@ class RagService:
             str(post.get("text", "")),
             str(post.get("clean_text", "")),
         ]
-        parts.extend(str(comment.get("text", "")) for comment in comments[:20])
-        return " ".join(part for part in parts if part)
+        parts.extend(str(c.get("text", "")) for c in comments[:20])
+        return " ".join(p for p in parts if p)
 
+    def get_status(self) -> dict[str, Any]:
+        """Return the current RAG status."""
+        connected = self._ensure_connected()
+        count = self.vector_store.get_count() if connected else 0
+        return {
+            "mode": "vector" if (connected and count > 0) else "rule_fallback",
+            "milvus_connected": connected,
+            "document_count": count,
+            "collection": "campus_knowledge_base",
+        }
+
+
+# ---------------------------------------------------------------------------
+# Singleton
+# ---------------------------------------------------------------------------
 
 _rag_service: RagService | None = None
 
 
 def get_rag_service() -> RagService:
-    """Return the process-wide RAG service."""
+    """Return the process-wide RAG service singleton."""
     global _rag_service
     if _rag_service is None:
         _rag_service = RagService()

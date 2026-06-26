@@ -20,7 +20,7 @@ class FakeStore:
 
 
 class FakeAnalysisService:
-    def analyze_event(self, event, mode="cached", use_llm=False):
+    async def analyze_event(self, event, mode="cached", use_llm=False):
         return {
             "event_id": event["event_id"],
             "risk_level": "高",

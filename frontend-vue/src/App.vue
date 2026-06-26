@@ -74,7 +74,7 @@ const toggleSidebar = () => {
         </div>
         <div class="brand-text" v-show="!sidebarCollapsed">
           <span class="brand-name">群声雷达</span>
-          <span class="brand-sub">Campus Opinion Radar</span>
+          <span class="brand-sub">CampusPulse</span>
         </div>
       </div>
 
@@ -219,6 +219,7 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
+  gap: 2px;
   padding: 8px 8px;
   overflow-y: auto;
 }
@@ -333,14 +334,36 @@ body {
   margin-left: var(--sidebar-width);
   flex: 1;
   min-height: 100vh;
-  max-width: 1600px;
-  margin-right: auto;
+  width: calc(100vw - var(--sidebar-width));
+  max-width: min(1600px, calc(100vw - var(--sidebar-width)));
   overflow-x: hidden;
   transition: margin-left 0.25s ease;
 }
 
 .sidebar.collapsed ~ .main-content {
   margin-left: var(--sidebar-collapsed-width);
+  width: calc(100vw - var(--sidebar-collapsed-width));
+  max-width: min(1600px, calc(100vw - var(--sidebar-collapsed-width)));
+}
+
+/* Responsive */
+@media (max-width: 1280px) {
+  :root {
+    --sidebar-width: 200px;
+  }
+  .main-content {
+    width: calc(100vw - 200px);
+    max-width: min(1600px, calc(100vw - 200px));
+  }
+}
+@media (max-width: 1080px) {
+  :root {
+    --sidebar-width: 180px;
+  }
+  .main-content {
+    width: calc(100vw - 180px);
+    max-width: min(1600px, calc(100vw - 180px));
+  }
 }
 
 /* Scrollbar */

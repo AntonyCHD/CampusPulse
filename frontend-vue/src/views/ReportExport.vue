@@ -1,16 +1,30 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, onMounted, watch, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { api, type Event, type Report } from '../api/client'
-import { Download, Select } from '@element-plus/icons-vue'
+import { Download, Select, Search } from '@element-plus/icons-vue'
 import SkeletonPresets from '../components/SkeletonPresets.vue'
 
 const route = useRoute()
+const router = useRouter()
 const eventId = ref((route.params.id as string) || '')
+watch(() => route.params.id, (newId) => { if (newId && newId !== eventId.value) { eventId.value = newId as string } })
 const report = ref<Report | null>(null)
 const events = ref<Event[]>([])
 const loading = ref(false)
 const loadingEvents = ref(false)
+
+const searchEventsQuery = ref('')
+const riskFilterEvents = ref('')
+const typeFilterEvents = ref('')
+const filteredEvents = computed(() => {
+  let result = events.value
+  const q = searchEventsQuery.value.toLowerCase()
+  if (q) result = result.filter(e => e.title.toLowerCase().includes(q) || e.event_id.toLowerCase().includes(q))
+  if (riskFilterEvents.value) result = result.filter(e => e.risk_level === riskFilterEvents.value)
+  if (typeFilterEvents.value) result = result.filter(e => e.event_type === typeFilterEvents.value)
+  return result
+})
 
 const loadEvents = async () => {
   loadingEvents.value = true
@@ -40,6 +54,7 @@ const loadReport = async () => {
 
 const selectEvent = (id: string) => {
   eventId.value = id
+  router.push('/report/' + id)
   loadReport()
 }
 
@@ -246,4 +261,26 @@ onMounted(() => {
 .finding-label { font-size: 13px; color: #64748B; margin-top: 4px; }
 .key-comments-list { display: flex; flex-wrap: wrap; gap: 8px; }
 .key-comment-tag { font-family: var(--font-heading); font-size: 12px; padding: 4px 12px; background: #fffbeb; border: 1px solid #fde68a; color: #92400e; border-radius: 6px; }
+
+@media (max-width: 1280px) {
+  .report-page { padding: 14px 16px; }
+}
+@media (max-width: 1080px) {
+  .report-page { padding: 12px 14px; }
+}
+/* Event List Table (shared) */
+.el-search-bar { display: flex; gap: 12px; padding: 12px 0; }
+.el-search-input { flex: 1; min-width: 200px; }
+.el-filter-select { width: 140px; flex-shrink: 0; }
+.event-table-wrap { max-height: 500px; overflow-y: auto; }
+.event-table-wrap .event-row { display: flex; align-items: flex-start; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #f8fafc; cursor: pointer; transition: background 0.15s; }
+.event-table-wrap .event-row:hover { background: #f8fafc; }
+.event-table-wrap .risk-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+.event-table-wrap .event-row-main { flex: 1; min-width: 0; }
+.event-table-wrap .event-row-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.event-table-wrap .event-id-tag { font-family: var(--font-heading); font-size: 11px; font-weight: 600; color: #3B82F6; background: #eff6ff; padding: 1px 6px; border-radius: 3px; }
+.event-table-wrap .event-risk-text { font-size: 12px; font-weight: 600; }
+.event-table-wrap .event-type-tag { font-size: 11px; color: #64748B; background: #f1f5f9; padding: 1px 8px; border-radius: 4px; }
+.event-table-wrap .event-row-title { font-size: 14px; color: #1e293b; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.event-table-wrap .event-row-meta { display: flex; gap: 16px; font-size: 12px; color: #94a3b8; }
 </style>
